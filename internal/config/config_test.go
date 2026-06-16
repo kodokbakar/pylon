@@ -24,6 +24,14 @@ func TestLoadUsesDefaults(t *testing.T) {
 	t.Setenv("WS_MAX_CONNECTIONS", "")
 	t.Setenv("WS_READ_BUFFER_SIZE", "")
 	t.Setenv("WS_WRITE_BUFFER_SIZE", "")
+	t.Setenv("WS_INSECURE_SKIP_VERIFY", "")
+	t.Setenv("JWT_SECRET", "")
+	t.Setenv("JWT_EXPIRY", "")
+	t.Setenv("JWT_REFRESH_EXPIRY", "")
+	t.Setenv("CHAT_SERVICE_URL", "")
+	t.Setenv("PRESENCE_SERVICE_URL", "")
+	t.Setenv("ROOM_SERVICE_URL", "")
+	t.Setenv("NOTIFICATION_SERVICE_URL", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -53,6 +61,22 @@ func TestLoadUsesDefaults(t *testing.T) {
 	if len(cfg.Kafka.Brokers) != 1 || cfg.Kafka.Brokers[0] != "localhost:9092" {
 		t.Fatalf("expected default kafka broker, got %#v", cfg.Kafka.Brokers)
 	}
+
+	if cfg.WebSocket.InsecureSkipVerify {
+		t.Fatal("expected websocket insecure skip verify false by default")
+	}
+
+	if cfg.JWT.Secret != "dev-secret-change-me" {
+		t.Fatalf("expected default jwt secret, got %q", cfg.JWT.Secret)
+	}
+
+	if cfg.JWT.Expiry != 24*time.Hour {
+		t.Fatalf("expected default jwt expiry 24h, got %s", cfg.JWT.Expiry)
+	}
+
+	if cfg.Services.ChatURL != "http://localhost:9001" {
+		t.Fatalf("expected default chat service url, got %q", cfg.Services.ChatURL)
+	}
 }
 
 func TestLoadUsesEnvironmentValues(t *testing.T) {
@@ -73,6 +97,14 @@ func TestLoadUsesEnvironmentValues(t *testing.T) {
 	t.Setenv("WS_MAX_CONNECTIONS", "2000")
 	t.Setenv("WS_READ_BUFFER_SIZE", "8192")
 	t.Setenv("WS_WRITE_BUFFER_SIZE", "8192")
+	t.Setenv("WS_INSECURE_SKIP_VERIFY", "true")
+	t.Setenv("JWT_SECRET", "test-secret")
+	t.Setenv("JWT_EXPIRY", "30m")
+	t.Setenv("JWT_REFRESH_EXPIRY", "48h")
+	t.Setenv("CHAT_SERVICE_URL", "http://chat:9001")
+	t.Setenv("PRESENCE_SERVICE_URL", "http://presence:9002")
+	t.Setenv("ROOM_SERVICE_URL", "http://room:9003")
+	t.Setenv("NOTIFICATION_SERVICE_URL", "http://notification:9004")
 
 	cfg, err := Load()
 	if err != nil {
@@ -109,6 +141,26 @@ func TestLoadUsesEnvironmentValues(t *testing.T) {
 
 	if cfg.WebSocket.MaxConnections != 2000 {
 		t.Fatalf("expected ws max connections 2000, got %d", cfg.WebSocket.MaxConnections)
+	}
+
+	if !cfg.WebSocket.InsecureSkipVerify {
+		t.Fatal("expected websocket insecure skip verify true")
+	}
+
+	if cfg.JWT.Secret != "test-secret" {
+		t.Fatalf("expected jwt secret test-secret, got %q", cfg.JWT.Secret)
+	}
+
+	if cfg.JWT.Expiry != 30*time.Minute {
+		t.Fatalf("expected jwt expiry 30m, got %s", cfg.JWT.Expiry)
+	}
+
+	if cfg.JWT.RefreshExpiry != 48*time.Hour {
+		t.Fatalf("expected jwt refresh expiry 48h, got %s", cfg.JWT.RefreshExpiry)
+	}
+
+	if cfg.Services.RoomURL != "http://room:9003" {
+		t.Fatalf("expected room service url http://room:9003, got %q", cfg.Services.RoomURL)
 	}
 }
 
@@ -170,5 +222,23 @@ func TestLoadDotEnvSetsExportValueWhenEnvDoesNotExist(t *testing.T) {
 
 	if got := os.Getenv(key); got != "enabled" {
 		t.Fatalf("expected dotenv value enabled, got %q", got)
+	}
+}
+
+func TestLoadReturnsErrorForInvalidJWTExpiry(t *testing.T) {
+	t.Setenv("JWT_EXPIRY", "invalid")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestLoadReturnsErrorForInvalidWebSocketInsecureSkipVerify(t *testing.T) {
+	t.Setenv("WS_INSECURE_SKIP_VERIFY", "invalid")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }

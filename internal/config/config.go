@@ -16,6 +16,21 @@ type Config struct {
 	Kafka     KafkaConfig
 	GRPC      GRPCConfig
 	WebSocket WebSocketConfig
+	JWT       JWTConfig
+	Services  ServicesConfig
+}
+
+type JWTConfig struct {
+	Secret        string
+	Expiry        time.Duration
+	RefreshExpiry time.Duration
+}
+
+type ServicesConfig struct {
+	ChatURL         string
+	PresenceURL     string
+	RoomURL         string
+	NotificationURL string
 }
 
 type AppConfig struct {
@@ -48,9 +63,10 @@ type GRPCConfig struct {
 }
 
 type WebSocketConfig struct {
-	MaxConnections  int
-	ReadBufferSize  int
-	WriteBufferSize int
+	MaxConnections     int
+	ReadBufferSize     int
+	WriteBufferSize    int
+	InsecureSkipVerify bool
 }
 
 func Load() (*Config, error) {
@@ -91,6 +107,21 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	wsInsecureSkipVerify, err := getBool("WS_INSECURE_SKIP_VERIFY", false)
+	if err != nil {
+		return nil, err
+	}
+
+	jwtExpiry, err := getDuration("JWT_EXPIRY", 24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
+	jwtRefreshExpiry, err := getDuration("JWT_REFRESH_EXPIRY", 7*24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &Config{
 		App: AppConfig{
 			Env:         getString("APP_ENV", "development"),
@@ -117,9 +148,21 @@ func Load() (*Config, error) {
 			Port: getString("GRPC_PORT", "9000"),
 		},
 		WebSocket: WebSocketConfig{
-			MaxConnections:  wsMaxConnections,
-			ReadBufferSize:  wsReadBufferSize,
-			WriteBufferSize: wsWriteBufferSize,
+			MaxConnections:     wsMaxConnections,
+			ReadBufferSize:     wsReadBufferSize,
+			WriteBufferSize:    wsWriteBufferSize,
+			InsecureSkipVerify: wsInsecureSkipVerify,
+		},
+		JWT: JWTConfig{
+			Secret:        getString("JWT_SECRET", "dev-secret-change-me"),
+			Expiry:        jwtExpiry,
+			RefreshExpiry: jwtRefreshExpiry,
+		},
+		Services: ServicesConfig{
+			ChatURL:         getString("CHAT_SERVICE_URL", "http://localhost:9001"),
+			PresenceURL:     getString("PRESENCE_SERVICE_URL", "http://localhost:9002"),
+			RoomURL:         getString("ROOM_SERVICE_URL", "http://localhost:9003"),
+			NotificationURL: getString("NOTIFICATION_SERVICE_URL", "http://localhost:9004"),
 		},
 	}
 
@@ -143,6 +186,20 @@ func getInt(key string, fallback int) (int, error) {
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
 		return 0, fmt.Errorf("parse %s as int: %w", key, err)
+	}
+
+	return parsed, nil
+}
+
+func getBool(key string, fallback bool) (bool, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("parse %s as bool: %w", key, err)
 	}
 
 	return parsed, nil
