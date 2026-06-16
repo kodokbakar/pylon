@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package pylon.room.v1;
+
+option go_package = "github.com/kodokbakar/pylon/gen/pylon/room/v1;roomv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// RoomService manages chat rooms
+service RoomService {
+  // CreateRoom creates a new chat room
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse);
+
+  // GetRoom returns room details
+  rpc GetRoom(GetRoomRequest) returns (GetRoomResponse);
+
+  // ListRooms returns rooms for a user
+  rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse);
+
+  // JoinRoom adds a user to a room
+  rpc JoinRoom(JoinRoomRequest) returns (google.protobuf.Empty);
+
+  // LeaveRoom removes a user from a room
+  rpc LeaveRoom(LeaveRoomRequest) returns (google.protobuf.Empty);
+
+  // GetRoomMembers returns all members of a room
+  rpc GetRoomMembers(GetRoomMembersRequest) returns (GetRoomMembersResponse);
+}
+
+// RoomType represents the type of room
+enum RoomType {
+  ROOM_TYPE_UNSPECIFIED = 0;
+  ROOM_TYPE_DIRECT = 1;    // 1-on-1 chat
+  ROOM_TYPE_GROUP = 2;     // group chat
+  ROOM_TYPE_CHANNEL = 3;   // public channel
+}
+
+// Room represents a chat room
+message Room {
+  string id = 1;
+  string name = 2;
+  RoomType type = 3;
+  string created_by = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// RoomMember represents a room member
+message RoomMember {
+  string user_id = 1;
+  string room_id = 2;
+  string role = 3;          // "owner", "admin", "member"
+  google.protobuf.Timestamp joined_at = 4;
+}
+
+message CreateRoomRequest {
+  string name = 1;
+  RoomType type = 2;
+  string creator_id = 3;
+  repeated string member_ids = 4;
+}
+
+message CreateRoomResponse {
+  Room room = 1;
+}
+
+message GetRoomRequest {
+  string room_id = 1;
+}
+
+message GetRoomResponse {
+  Room room = 1;
+}
+
+message ListRoomsRequest {
+  string user_id = 1;
+}
+
+message ListRoomsResponse {
+  repeated Room rooms = 1;
+}
+
+message JoinRoomRequest {
+  string room_id = 1;
+  string user_id = 2;
+}
+
+message LeaveRoomRequest {
+  string room_id = 1;
+  string user_id = 2;
+}
+
+message GetRoomMembersRequest {
+  string room_id = 1;
+}
+
+message GetRoomMembersResponse {
+  repeated RoomMember members = 1;
+}

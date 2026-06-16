@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package pylon.presence.v1;
+
+option go_package = "github.com/kodokbakar/pylon/gen/pylon/presence/v1;presencev1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// PresenceService tracks user online/offline status and typing indicators
+service PresenceService {
+  // SetOnline marks a user as online
+  rpc SetOnline(SetOnlineRequest) returns (google.protobuf.Empty);
+
+  // SetOffline marks a user as offline
+  rpc SetOffline(SetOfflineRequest) returns (google.protobuf.Empty);
+
+  // SetTyping marks a user as typing in a room
+  rpc SetTyping(SetTypingRequest) returns (google.protobuf.Empty);
+
+  // GetPresence returns the presence status of a user
+  rpc GetPresence(GetPresenceRequest) returns (GetPresenceResponse);
+
+  // GetRoomPresence returns all user presence statuses in a room
+  rpc GetRoomPresence(GetRoomPresenceRequest) returns (GetRoomPresenceResponse);
+
+  // StreamPresence streams presence changes for a room
+  rpc StreamPresence(StreamPresenceRequest) returns (stream PresenceEvent);
+}
+
+// PresenceStatus represents user presence
+enum PresenceStatus {
+  PRESENCE_STATUS_UNSPECIFIED = 0;
+  PRESENCE_STATUS_ONLINE = 1;
+  PRESENCE_STATUS_OFFLINE = 2;
+  PRESENCE_STATUS_TYPING = 3;
+}
+
+// PresenceEvent represents a presence change event
+message PresenceEvent {
+  string user_id = 1;
+  string room_id = 2;
+  PresenceStatus status = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+message SetOnlineRequest {
+  string user_id = 1;
+}
+
+message SetOfflineRequest {
+  string user_id = 1;
+}
+
+message SetTypingRequest {
+  string user_id = 1;
+  string room_id = 2;
+}
+
+message GetPresenceRequest {
+  string user_id = 1;
+}
+
+message GetPresenceResponse {
+  PresenceStatus status = 1;
+  google.protobuf.Timestamp last_seen = 2;
+}
+
+message GetRoomPresenceRequest {
+  string room_id = 1;
+}
+
+message GetRoomPresenceResponse {
+  repeated PresenceEvent presences = 1;
+}
+
+message StreamPresenceRequest {
+  string room_id = 1;
+}

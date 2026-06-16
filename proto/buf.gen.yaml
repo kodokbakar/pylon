@@ -1,0 +1,9 @@
+version: v2
+plugins:
+  - remote: connectrpc.com/connect-go
+    out: ../gen
+    opt: paths=source_relative
+  - remote: connectrpc.com/connect-go
+    out: ../gen
+    opt: paths=source_relative
+    suffix: _connect.go

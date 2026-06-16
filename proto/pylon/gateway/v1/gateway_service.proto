@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package pylon.gateway.v1;
+
+option go_package = "github.com/kodokbakar/pylon/gen/pylon/gateway/v1;gatewayv1";
+
+import "google/protobuf/timestamp.proto";
+
+// GatewayService handles auth and routing for the API gateway
+service GatewayService {
+  // ValidateToken validates a JWT token and returns user info
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  // RefreshToken refreshes an expired JWT token
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string username = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}

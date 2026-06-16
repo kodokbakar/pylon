@@ -1,0 +1,15 @@
+version: v2
+modules:
+  - path: .
+deps:
+  - buf.build/connectrpc/connect-go
+  - buf.build/googleapis/googleapis
+lint:
+  use:
+    - STANDARD
+  except:
+    - UNARY_RPC
+    - PACKAGE_VERSION_SUFFIX
+breaking:
+  use:
+    - FILE

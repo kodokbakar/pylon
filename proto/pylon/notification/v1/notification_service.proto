@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package pylon.notification.v1;
+
+option go_package = "github.com/kodokbakar/pylon/gen/pylon/notification/v1;notificationv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// NotificationService handles push notifications
+service NotificationService {
+  // SendNotification sends a notification to a user
+  rpc SendNotification(SendNotificationRequest) returns (google.protobuf.Empty);
+
+  // GetNotifications returns notifications for a user
+  rpc GetNotifications(GetNotificationsRequest) returns (GetNotificationsResponse);
+
+  // MarkAsRead marks a notification as read
+  rpc MarkAsRead(MarkAsReadRequest) returns (google.protobuf.Empty);
+}
+
+// NotificationType represents the type of notification
+enum NotificationType {
+  NOTIFICATION_TYPE_UNSPECIFIED = 0;
+  NOTIFICATION_TYPE_MESSAGE = 1;       // new message
+  NOTIFICATION_TYPE_INVITE = 2;        // room invite
+  NOTIFICATION_TYPE_MENTION = 3;       // @mention
+}
+
+// Notification represents a push notification
+message Notification {
+  string id = 1;
+  string user_id = 2;
+  NotificationType type = 3;
+  string title = 4;
+  string body = 5;
+  string room_id = 6;
+  bool read = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message SendNotificationRequest {
+  string user_id = 1;
+  NotificationType type = 2;
+  string title = 3;
+  string body = 4;
+  string room_id = 5;
+}
+
+message GetNotificationsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  bool unread_only = 3;
+}
+
+message GetNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 unread_count = 2;
+}
+
+message MarkAsReadRequest {
+  string notification_id = 1;
+}
