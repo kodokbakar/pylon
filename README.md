@@ -192,7 +192,7 @@ Access monitoring tools:
 
 - **Grafana**: http://localhost:3000 (admin/admin)
 - **Prometheus**: http://localhost:9090
-- **Kafka UI**: http://localhost:8080
+- **Kafka UI**: http://localhost:8085
 
 ## Development
 
