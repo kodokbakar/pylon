@@ -60,4 +60,5 @@ message GetNotificationsResponse {
 
 message MarkAsReadRequest {
   string notification_id = 1;
+  string user_id = 2;
 }
