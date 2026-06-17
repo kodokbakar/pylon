@@ -13,6 +13,33 @@ type MessageRepository struct {
 	db *pgxpool.Pool
 }
 
+const listMessagesByRoomQuery = `
+	SELECT id, room_id, sender_id, content, type, created_at
+	FROM messages
+	WHERE room_id = $1
+	ORDER BY created_at DESC, id DESC
+	LIMIT $2
+`
+
+const listMessagesByRoomBeforeIDQuery = `
+	WITH cursor_message AS (
+		SELECT id, created_at
+		FROM messages
+		WHERE room_id = $1
+		  AND id = $2
+	)
+	SELECT m.id, m.room_id, m.sender_id, m.content, m.type, m.created_at
+	FROM messages m
+	JOIN cursor_message c ON true
+	WHERE m.room_id = $1
+	  AND (
+		m.created_at < c.created_at
+		OR (m.created_at = c.created_at AND m.id < c.id)
+	  )
+	ORDER BY m.created_at DESC, m.id DESC
+	LIMIT $3
+`
+
 func NewMessageRepository(db *pgxpool.Pool) (*MessageRepository, error) {
 	if db == nil {
 		return nil, fmt.Errorf("postgres pool is required")
@@ -53,26 +80,9 @@ func (r *MessageRepository) ListByRoom(ctx context.Context, input chatservice.Ge
 	var err error
 
 	if input.BeforeID == "" {
-		rows, err = r.db.Query(ctx, `
-			SELECT id, room_id, sender_id, content, type, created_at
-			FROM messages
-			WHERE room_id = $1
-			ORDER BY created_at DESC
-			LIMIT $2
-		`, input.RoomID, limit)
+		rows, err = r.db.Query(ctx, listMessagesByRoomQuery, input.RoomID, limit)
 	} else {
-		rows, err = r.db.Query(ctx, `
-			SELECT id, room_id, sender_id, content, type, created_at
-			FROM messages
-			WHERE room_id = $1
-			  AND created_at < (
-				SELECT created_at
-				FROM messages
-				WHERE id = $2
-			  )
-			ORDER BY created_at DESC
-			LIMIT $3
-		`, input.RoomID, input.BeforeID, limit)
+		rows, err = r.db.Query(ctx, listMessagesByRoomBeforeIDQuery, input.RoomID, input.BeforeID, limit)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("query messages: %w", err)
