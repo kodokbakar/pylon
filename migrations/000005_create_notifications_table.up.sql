@@ -1,8 +1,6 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL,
+    user_id UUID NOT NULL REFERENCES users(id),
     type VARCHAR(20) NOT NULL,
     title VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
@@ -13,8 +11,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     CONSTRAINT notifications_type_valid CHECK (type IN ('message', 'invite', 'mention')),
     CONSTRAINT notifications_title_not_empty CHECK (length(trim(title)) > 0),
     CONSTRAINT notifications_body_not_empty CHECK (length(trim(body)) > 0),
-    CONSTRAINT notifications_body_max_length CHECK (char_length(body) <= 10000),
-    CONSTRAINT notifications_title_max_length CHECK (char_length(title) <= 255)
+    CONSTRAINT notifications_title_max_length CHECK (char_length(title) <= 255),
+    CONSTRAINT notifications_body_max_length CHECK (char_length(body) <= 10000)
 );
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id

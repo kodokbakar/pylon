@@ -1,9 +1,7 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID NOT NULL,
-    sender_id UUID NOT NULL,
+    room_id UUID NOT NULL REFERENCES rooms(id),
+    sender_id UUID NOT NULL REFERENCES users(id),
     content TEXT NOT NULL,
     type VARCHAR(20) NOT NULL DEFAULT 'text',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -15,6 +13,9 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_messages_room_id
     ON messages(room_id);
+
+CREATE INDEX IF NOT EXISTS idx_messages_sender_id
+    ON messages(sender_id);
 
 CREATE INDEX IF NOT EXISTS idx_messages_created_at
     ON messages(created_at);
