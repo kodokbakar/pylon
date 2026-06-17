@@ -23,7 +23,7 @@ dev-logs: ## Show logs from development environment
 
 # Proto
 proto: ## Generate protobuf code
-	cd proto && buf generate --path . --template buf.gen.yaml --output ..
+	cd proto && buf generate --template buf.gen.yaml
 
 proto-lint: ## Lint protobuf definitions
 	cd proto && buf lint
