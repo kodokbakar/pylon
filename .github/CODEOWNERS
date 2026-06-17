@@ -1,0 +1,10 @@
+* @kodokbakar
+
+.github/workflows/* @kodokbakar
+Dockerfile @kodokbakar
+Makefile @kodokbakar
+migrations/* @kodokbakar
+proto/* @kodokbakar
+cmd/* @kodokbakar
+internal/* @kodokbakar
+services/* @kodokbakar

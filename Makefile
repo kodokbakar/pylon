@@ -10,10 +10,10 @@ dev: ## Start local development environment (PostgreSQL, Redis, Kafka)
 	@echo "Waiting for services to be ready..."
 	@sleep 5
 	@echo "Services ready:"
-	@echo "  PostgreSQL: localhost:5432"
-	@echo "  Redis:      localhost:6379"
+	@echo "  PostgreSQL: localhost:5433"
+	@echo "  Redis:      localhost:6380"
 	@echo "  Kafka:      localhost:9092"
-	@echo "  Kafka UI:   localhost:8080"
+	@echo "  Kafka UI:   localhost:8085"
 
 dev-down: ## Stop local development environment
 	docker compose down
