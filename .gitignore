@@ -31,10 +31,10 @@ Thumbs.db
 .env
 *.env.local
 
-# Generated
-gen/
-*.pb.go
-*_connect.go
+# Generated protobuf code is committed because Go packages import gen/ directly.
+# gen/
+# *.pb.go
+# *_connect.go
 
 # Build
 dist/

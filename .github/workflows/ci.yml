@@ -31,9 +31,23 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Verify generated protobuf files
+        run: |
+          test -f gen/pylon/chat/v1/chat_service.pb.go
+          test -f gen/pylon/chat/v1/chatv1connect/chat_service.connect.go
+          test -f gen/pylon/gateway/v1/gateway_service.pb.go
+          test -f gen/pylon/gateway/v1/gatewayv1connect/gateway_service.connect.go
+          test -f gen/pylon/presence/v1/presence_service.pb.go
+          test -f gen/pylon/presence/v1/presencev1connect/presence_service.connect.go
+          test -f gen/pylon/room/v1/room_service.pb.go
+          test -f gen/pylon/room/v1/roomv1connect/room_service.connect.go
+          test -f gen/pylon/notification/v1/notification_service.pb.go
+          test -f gen/pylon/notification/v1/notificationv1connect/notification_service.connect.go
+
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
+          version: v2.12.2
           args: --timeout=5m
 
   test:
@@ -88,6 +102,19 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Verify generated protobuf files
+        run: |
+          test -f gen/pylon/chat/v1/chat_service.pb.go
+          test -f gen/pylon/chat/v1/chatv1connect/chat_service.connect.go
+          test -f gen/pylon/gateway/v1/gateway_service.pb.go
+          test -f gen/pylon/gateway/v1/gatewayv1connect/gateway_service.connect.go
+          test -f gen/pylon/presence/v1/presence_service.pb.go
+          test -f gen/pylon/presence/v1/presencev1connect/presence_service.connect.go
+          test -f gen/pylon/room/v1/room_service.pb.go
+          test -f gen/pylon/room/v1/roomv1connect/room_service.connect.go
+          test -f gen/pylon/notification/v1/notification_service.pb.go
+          test -f gen/pylon/notification/v1/notificationv1connect/notification_service.connect.go
+
       - name: Run tests with coverage
         run: go test -v -coverprofile=coverage.out ./...
 
@@ -121,6 +148,19 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+
+      - name: Verify generated protobuf files
+        run: |
+          test -f gen/pylon/chat/v1/chat_service.pb.go
+          test -f gen/pylon/chat/v1/chatv1connect/chat_service.connect.go
+          test -f gen/pylon/gateway/v1/gateway_service.pb.go
+          test -f gen/pylon/gateway/v1/gatewayv1connect/gateway_service.connect.go
+          test -f gen/pylon/presence/v1/presence_service.pb.go
+          test -f gen/pylon/presence/v1/presencev1connect/presence_service.connect.go
+          test -f gen/pylon/room/v1/room_service.pb.go
+          test -f gen/pylon/room/v1/roomv1connect/room_service.connect.go
+          test -f gen/pylon/notification/v1/notification_service.pb.go
+          test -f gen/pylon/notification/v1/notificationv1connect/notification_service.connect.go
 
       - name: Build all services
         run: make build
