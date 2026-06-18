@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	chatv1 "github.com/kodokbakar/pylon/gen/pylon/chat/v1"
+	gatewaymanager "github.com/kodokbakar/pylon/services/api-gateway/manager"
 )
 
 func TestNormalizeOriginPatternsTrimsAndAddsHostPatterns(t *testing.T) {
@@ -57,5 +58,42 @@ func TestClientMessageTypeToProtoRejectsUnsupportedType(t *testing.T) {
 	_, err := clientMessageTypeToProto("video")
 	if err == nil {
 		t.Fatal("expected unsupported message type error")
+	}
+}
+
+func TestTypingEnvelopeUsesConnectionUsername(t *testing.T) {
+	got := typingEnvelope(&gatewaymanager.Connection{
+		UserID:   "user-1",
+		Username: "alice",
+	}, "room-1")
+
+	if got.Type != "typing" {
+		t.Fatalf("expected typing type, got %q", got.Type)
+	}
+
+	if got.RoomID != "room-1" {
+		t.Fatalf("expected room-1, got %q", got.RoomID)
+	}
+
+	if got.UserID != "user-1" {
+		t.Fatalf("expected user-1, got %q", got.UserID)
+	}
+
+	if got.Username != "alice" {
+		t.Fatalf("expected username alice, got %q", got.Username)
+	}
+}
+
+func TestTypingEnvelopeDoesNotUseUserIDAsUsernameWhenUsernameMissing(t *testing.T) {
+	got := typingEnvelope(&gatewaymanager.Connection{
+		UserID: "user-1",
+	}, "room-1")
+
+	if got.UserID != "user-1" {
+		t.Fatalf("expected user-1, got %q", got.UserID)
+	}
+
+	if got.Username != "" {
+		t.Fatalf("expected empty username, got %q", got.Username)
 	}
 }

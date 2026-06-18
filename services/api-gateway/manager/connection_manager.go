@@ -14,11 +14,12 @@ import (
 const DefaultSendBuffer = 64
 
 type Connection struct {
-	ID      string
-	UserID  string
-	RoomIDs map[string]bool
-	Conn    *websocket.Conn
-	Send    chan []byte
+	ID       string
+	UserID   string
+	Username string
+	RoomIDs  map[string]bool
+	Conn     *websocket.Conn
+	Send     chan []byte
 
 	closed bool
 }
@@ -70,6 +71,7 @@ func (m *ConnectionManager) Add(conn *Connection) bool {
 	}
 
 	conn.UserID = strings.TrimSpace(conn.UserID)
+	conn.Username = strings.TrimSpace(conn.Username)
 	if conn.ID == "" {
 		conn.ID = newConnectionID()
 	}

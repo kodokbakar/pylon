@@ -99,6 +99,9 @@ func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	username, _ := gatewaymiddleware.UsernameFromContext(r.Context())
+	username = strings.TrimSpace(username)
+
 	acceptOptions := &websocket.AcceptOptions{
 		InsecureSkipVerify: h.insecureSkipVerify,
 	}
@@ -121,6 +124,7 @@ func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wsConn := gatewaymanager.NewConnection(userID, conn, webSocketSendBuffer)
+	wsConn.Username = username
 	if !h.manager.Add(wsConn) {
 		_ = conn.Close(websocket.StatusPolicyViolation, "websocket connection limit reached")
 		return
@@ -233,13 +237,7 @@ func (h *WebSocketHandler) handleJoin(ctx context.Context, conn *gatewaymanager.
 		return sendJSON(ctx, conn, errorEnvelope("BAD_REQUEST", "failed to join room"))
 	}
 
-	payload, err := json.Marshal(serverEnvelope{
-		Type:   "user_joined",
-		RoomID: roomID,
-		User: &userPayload{
-			ID: conn.UserID,
-		},
-	})
+	payload, err := json.Marshal(typingEnvelope(conn, roomID))
 	if err != nil {
 		return fmt.Errorf("marshal user joined event: %w", err)
 	}
@@ -379,6 +377,22 @@ func sendJSON(ctx context.Context, conn *gatewaymanager.Connection, payload any)
 		return nil
 	default:
 		return fmt.Errorf("websocket send buffer is full")
+	}
+}
+
+func typingEnvelope(conn *gatewaymanager.Connection, roomID string) serverEnvelope {
+	if conn == nil {
+		return serverEnvelope{
+			Type:   "typing",
+			RoomID: roomID,
+		}
+	}
+
+	return serverEnvelope{
+		Type:     "typing",
+		RoomID:   roomID,
+		UserID:   conn.UserID,
+		Username: strings.TrimSpace(conn.Username),
 	}
 }
 
