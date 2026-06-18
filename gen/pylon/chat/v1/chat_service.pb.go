@@ -9,7 +9,6 @@ package chatv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	_ "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -31,6 +30,7 @@ const (
 	MessageType_MESSAGE_TYPE_TEXT        MessageType = 1
 	MessageType_MESSAGE_TYPE_IMAGE       MessageType = 2
 	MessageType_MESSAGE_TYPE_SYSTEM      MessageType = 3
+	MessageType_MESSAGE_TYPE_FILE        MessageType = 4
 )
 
 // Enum value maps for MessageType.
@@ -40,12 +40,14 @@ var (
 		1: "MESSAGE_TYPE_TEXT",
 		2: "MESSAGE_TYPE_IMAGE",
 		3: "MESSAGE_TYPE_SYSTEM",
+		4: "MESSAGE_TYPE_FILE",
 	}
 	MessageType_value = map[string]int32{
 		"MESSAGE_TYPE_UNSPECIFIED": 0,
 		"MESSAGE_TYPE_TEXT":        1,
 		"MESSAGE_TYPE_IMAGE":       2,
 		"MESSAGE_TYPE_SYSTEM":      3,
+		"MESSAGE_TYPE_FILE":        4,
 	}
 )
 
@@ -78,15 +80,18 @@ func (MessageType) EnumDescriptor() ([]byte, []int) {
 
 // Message represents a chat message
 type Message struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	RoomId        string                 `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	SenderId      string                 `protobuf:"bytes,3,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"`
-	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
-	Type          MessageType            `protobuf:"varint,5,opt,name=type,proto3,enum=pylon.chat.v1.MessageType" json:"type,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	RoomId            string                 `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	SenderId          string                 `protobuf:"bytes,3,opt,name=sender_id,json=senderId,proto3" json:"sender_id,omitempty"`
+	Content           string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	Type              MessageType            `protobuf:"varint,5,opt,name=type,proto3,enum=pylon.chat.v1.MessageType" json:"type,omitempty"`
+	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	SenderUsername    string                 `protobuf:"bytes,7,opt,name=sender_username,json=senderUsername,proto3" json:"sender_username,omitempty"`
+	SenderDisplayName string                 `protobuf:"bytes,8,opt,name=sender_display_name,json=senderDisplayName,proto3" json:"sender_display_name,omitempty"`
+	SenderAvatarUrl   string                 `protobuf:"bytes,9,opt,name=sender_avatar_url,json=senderAvatarUrl,proto3" json:"sender_avatar_url,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Message) Reset() {
@@ -159,6 +164,27 @@ func (x *Message) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *Message) GetSenderUsername() string {
+	if x != nil {
+		return x.SenderUsername
+	}
+	return ""
+}
+
+func (x *Message) GetSenderDisplayName() string {
+	if x != nil {
+		return x.SenderDisplayName
+	}
+	return ""
+}
+
+func (x *Message) GetSenderAvatarUrl() string {
+	if x != nil {
+		return x.SenderAvatarUrl
+	}
+	return ""
 }
 
 type SendMessageRequest struct {
@@ -330,6 +356,7 @@ type GetMessagesRequest struct {
 	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	BeforeId      string                 `protobuf:"bytes,3,opt,name=before_id,json=beforeId,proto3" json:"before_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -381,6 +408,13 @@ func (x *GetMessagesRequest) GetLimit() int32 {
 func (x *GetMessagesRequest) GetBeforeId() string {
 	if x != nil {
 		return x.BeforeId
+	}
+	return ""
+}
+
+func (x *GetMessagesRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -441,7 +475,7 @@ var File_pylon_chat_v1_chat_service_proto protoreflect.FileDescriptor
 
 const file_pylon_chat_v1_chat_service_proto_rawDesc = "" +
 	"\n" +
-	" pylon/chat/v1/chat_service.proto\x12\rpylon.chat.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xd4\x01\n" +
+	" pylon/chat/v1/chat_service.proto\x12\rpylon.chat.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd9\x02\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12\x1b\n" +
@@ -449,7 +483,10 @@ const file_pylon_chat_v1_chat_service_proto_rawDesc = "" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12.\n" +
 	"\x04type\x18\x05 \x01(\x0e2\x1a.pylon.chat.v1.MessageTypeR\x04type\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x94\x01\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12'\n" +
+	"\x0fsender_username\x18\a \x01(\tR\x0esenderUsername\x12.\n" +
+	"\x13sender_display_name\x18\b \x01(\tR\x11senderDisplayName\x12*\n" +
+	"\x11sender_avatar_url\x18\t \x01(\tR\x0fsenderAvatarUrl\"\x94\x01\n" +
 	"\x12SendMessageRequest\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x1b\n" +
 	"\tsender_id\x18\x02 \x01(\tR\bsenderId\x12\x18\n" +
@@ -459,19 +496,21 @@ const file_pylon_chat_v1_chat_service_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\v2\x16.pylon.chat.v1.MessageR\amessage\"I\n" +
 	"\x15StreamMessagesRequest\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\"`\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\"y\n" +
 	"\x12GetMessagesRequest\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x1b\n" +
-	"\tbefore_id\x18\x03 \x01(\tR\bbeforeId\"d\n" +
+	"\tbefore_id\x18\x03 \x01(\tR\bbeforeId\x12\x17\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userId\"d\n" +
 	"\x13GetMessagesResponse\x122\n" +
 	"\bmessages\x18\x01 \x03(\v2\x16.pylon.chat.v1.MessageR\bmessages\x12\x19\n" +
-	"\bhas_more\x18\x02 \x01(\bR\ahasMore*s\n" +
+	"\bhas_more\x18\x02 \x01(\bR\ahasMore*\x8a\x01\n" +
 	"\vMessageType\x12\x1c\n" +
 	"\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11MESSAGE_TYPE_TEXT\x10\x01\x12\x16\n" +
 	"\x12MESSAGE_TYPE_IMAGE\x10\x02\x12\x17\n" +
-	"\x13MESSAGE_TYPE_SYSTEM\x10\x032\x8b\x02\n" +
+	"\x13MESSAGE_TYPE_SYSTEM\x10\x03\x12\x15\n" +
+	"\x11MESSAGE_TYPE_FILE\x10\x042\x8b\x02\n" +
 	"\vChatService\x12T\n" +
 	"\vSendMessage\x12!.pylon.chat.v1.SendMessageRequest\x1a\".pylon.chat.v1.SendMessageResponse\x12P\n" +
 	"\x0eStreamMessages\x12$.pylon.chat.v1.StreamMessagesRequest\x1a\x16.pylon.chat.v1.Message0\x01\x12T\n" +

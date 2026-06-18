@@ -21,35 +21,48 @@ func TestNewProducerRequiresTopic(t *testing.T) {
 	}
 }
 
-func TestNewMessageCreatedEventIncludesVersion(t *testing.T) {
+func TestNewMessageCreatedEventMatchesContract(t *testing.T) {
 	createdAt := time.Now()
 
 	event, err := NewMessageCreatedEvent(&chatservice.Message{
-		ID:        "message-1",
-		RoomID:    "room-1",
-		SenderID:  "user-1",
-		Content:   "hello",
-		Type:      chatservice.MessageTypeText,
-		CreatedAt: createdAt,
+		ID:             "message-1",
+		RoomID:         "room-1",
+		SenderID:       "user-1",
+		SenderUsername: "alice",
+		Content:        "hello",
+		Type:           chatservice.MessageTypeText,
+		CreatedAt:      createdAt,
 	})
 	if err != nil {
 		t.Fatalf("create message event: %v", err)
 	}
 
-	if event.Version != MessageCreatedEventVersion {
-		t.Fatalf("expected version %q, got %q", MessageCreatedEventVersion, event.Version)
-	}
-
-	if event.Type != "message.created" {
-		t.Fatalf("expected message.created type, got %q", event.Type)
+	if event.EventType != "message_created" {
+		t.Fatalf("expected message_created event type, got %q", event.EventType)
 	}
 
 	if event.MessageID != "message-1" {
 		t.Fatalf("expected message id message-1, got %q", event.MessageID)
 	}
 
-	if !event.Timestamp.Equal(createdAt) {
-		t.Fatalf("expected timestamp %s, got %s", createdAt, event.Timestamp)
+	if event.RoomID != "room-1" {
+		t.Fatalf("expected room id room-1, got %q", event.RoomID)
+	}
+
+	if event.SenderID != "user-1" {
+		t.Fatalf("expected sender id user-1, got %q", event.SenderID)
+	}
+
+	if event.SenderUsername != "alice" {
+		t.Fatalf("expected sender username alice, got %q", event.SenderUsername)
+	}
+
+	if event.Type != "text" {
+		t.Fatalf("expected text message type, got %q", event.Type)
+	}
+
+	if !event.CreatedAt.Equal(createdAt) {
+		t.Fatalf("expected created_at %s, got %s", createdAt, event.CreatedAt)
 	}
 }
 

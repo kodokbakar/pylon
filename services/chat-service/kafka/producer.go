@@ -14,17 +14,15 @@ import (
 
 const MessageEventsTopic = "message-events"
 
-const MessageCreatedEventVersion = "1.0"
-
 type MessageCreatedEvent struct {
-	Version   string    `json:"version"`
-	EventID   string    `json:"event_id"`
-	Type      string    `json:"type"`
-	RoomID    string    `json:"room_id"`
-	SenderID  string    `json:"sender_id"`
-	MessageID string    `json:"message_id"`
-	Content   string    `json:"content"`
-	Timestamp time.Time `json:"timestamp"`
+	EventType      string    `json:"event_type"`
+	MessageID      string    `json:"message_id"`
+	RoomID         string    `json:"room_id"`
+	SenderID       string    `json:"sender_id"`
+	SenderUsername string    `json:"sender_username"`
+	Content        string    `json:"content"`
+	Type           string    `json:"type"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Producer struct {
@@ -66,14 +64,14 @@ func NewMessageCreatedEvent(msg *chatservice.Message) (*MessageCreatedEvent, err
 	}
 
 	return &MessageCreatedEvent{
-		Version:   MessageCreatedEventVersion,
-		EventID:   fmt.Sprintf("message.created.%s", msg.ID),
-		Type:      "message.created",
-		RoomID:    msg.RoomID,
-		SenderID:  msg.SenderID,
-		MessageID: msg.ID,
-		Content:   msg.Content,
-		Timestamp: msg.CreatedAt,
+		EventType:      "message_created",
+		MessageID:      msg.ID,
+		RoomID:         msg.RoomID,
+		SenderID:       msg.SenderID,
+		SenderUsername: msg.SenderUsername,
+		Content:        msg.Content,
+		Type:           string(msg.Type),
+		CreatedAt:      msg.CreatedAt,
 	}, nil
 }
 

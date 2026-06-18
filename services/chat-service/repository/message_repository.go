@@ -13,11 +13,41 @@ type MessageRepository struct {
 	db *pgxpool.Pool
 }
 
+const createMessageQuery = `
+	WITH inserted AS (
+		INSERT INTO messages (room_id, sender_id, content, type)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, room_id, sender_id, content, type, created_at
+	)
+	SELECT
+		i.id,
+		i.room_id,
+		i.sender_id,
+		i.content,
+		i.type,
+		i.created_at,
+		u.username,
+		COALESCE(u.display_name, ''),
+		COALESCE(u.avatar_url, '')
+	FROM inserted i
+	JOIN users u ON u.id = i.sender_id
+`
+
 const listMessagesByRoomQuery = `
-	SELECT id, room_id, sender_id, content, type, created_at
-	FROM messages
-	WHERE room_id = $1
-	ORDER BY created_at DESC, id DESC
+	SELECT
+		m.id,
+		m.room_id,
+		m.sender_id,
+		m.content,
+		m.type,
+		m.created_at,
+		u.username,
+		COALESCE(u.display_name, ''),
+		COALESCE(u.avatar_url, '')
+	FROM messages m
+	JOIN users u ON u.id = m.sender_id
+	WHERE m.room_id = $1
+	ORDER BY m.created_at DESC, m.id DESC
 	LIMIT $2
 `
 
@@ -28,8 +58,18 @@ const listMessagesByRoomBeforeIDQuery = `
 		WHERE room_id = $1
 		  AND id = $2
 	)
-	SELECT m.id, m.room_id, m.sender_id, m.content, m.type, m.created_at
+	SELECT
+		m.id,
+		m.room_id,
+		m.sender_id,
+		m.content,
+		m.type,
+		m.created_at,
+		u.username,
+		COALESCE(u.display_name, ''),
+		COALESCE(u.avatar_url, '')
 	FROM messages m
+	JOIN users u ON u.id = m.sender_id
 	JOIN cursor_message c ON true
 	WHERE m.room_id = $1
 	  AND (
@@ -49,28 +89,19 @@ func NewMessageRepository(db *pgxpool.Pool) (*MessageRepository, error) {
 }
 
 func (r *MessageRepository) Create(ctx context.Context, input chatservice.CreateMessageInput) (*chatservice.Message, error) {
-	var msg chatservice.Message
-	var messageType string
-
-	err := r.db.QueryRow(ctx, `
-		INSERT INTO messages (room_id, sender_id, content, type)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, room_id, sender_id, content, type, created_at
-	`, input.RoomID, input.SenderID, input.Content, string(input.Type)).Scan(
-		&msg.ID,
-		&msg.RoomID,
-		&msg.SenderID,
-		&msg.Content,
-		&messageType,
-		&msg.CreatedAt,
-	)
+	msg, err := scanMessage(r.db.QueryRow(
+		ctx,
+		createMessageQuery,
+		input.RoomID,
+		input.SenderID,
+		input.Content,
+		string(input.Type),
+	))
 	if err != nil {
 		return nil, fmt.Errorf("insert message: %w", err)
 	}
 
-	msg.Type = chatservice.MessageType(messageType)
-
-	return &msg, nil
+	return msg, nil
 }
 
 func (r *MessageRepository) ListByRoom(ctx context.Context, input chatservice.GetMessagesInput) (*chatservice.GetMessagesResult, error) {
@@ -92,22 +123,12 @@ func (r *MessageRepository) ListByRoom(ctx context.Context, input chatservice.Ge
 	messages := make([]chatservice.Message, 0, input.Limit+1)
 
 	for rows.Next() {
-		var msg chatservice.Message
-		var messageType string
-
-		if err := rows.Scan(
-			&msg.ID,
-			&msg.RoomID,
-			&msg.SenderID,
-			&msg.Content,
-			&messageType,
-			&msg.CreatedAt,
-		); err != nil {
+		msg, err := scanMessage(rows)
+		if err != nil {
 			return nil, fmt.Errorf("scan message: %w", err)
 		}
 
-		msg.Type = chatservice.MessageType(messageType)
-		messages = append(messages, msg)
+		messages = append(messages, *msg)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -123,6 +144,33 @@ func (r *MessageRepository) ListByRoom(ctx context.Context, input chatservice.Ge
 		Messages: messages,
 		HasMore:  hasMore,
 	}, nil
+}
+
+type pgxScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanMessage(row pgxScanner) (*chatservice.Message, error) {
+	var msg chatservice.Message
+	var messageType string
+
+	if err := row.Scan(
+		&msg.ID,
+		&msg.RoomID,
+		&msg.SenderID,
+		&msg.Content,
+		&messageType,
+		&msg.CreatedAt,
+		&msg.SenderUsername,
+		&msg.SenderDisplayName,
+		&msg.SenderAvatarURL,
+	); err != nil {
+		return nil, err
+	}
+
+	msg.Type = chatservice.MessageType(messageType)
+
+	return &msg, nil
 }
 
 type pgxRows interface {
