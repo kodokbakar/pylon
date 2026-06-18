@@ -97,3 +97,34 @@ func TestTypingEnvelopeDoesNotUseUserIDAsUsernameWhenUsernameMissing(t *testing.
 		t.Fatalf("expected empty username, got %q", got.Username)
 	}
 }
+
+func TestUserJoinedEnvelopeUsesUserJoinedType(t *testing.T) {
+	got := userJoinedEnvelope(&gatewaymanager.Connection{
+		UserID:   "user-1",
+		Username: "alice",
+	}, "room-1")
+
+	if got.Type != "user_joined" {
+		t.Fatalf("expected user_joined type, got %q", got.Type)
+	}
+
+	if got.RoomID != "room-1" {
+		t.Fatalf("expected room-1, got %q", got.RoomID)
+	}
+
+	if got.User == nil {
+		t.Fatal("expected user payload")
+	}
+
+	if got.User.ID != "user-1" {
+		t.Fatalf("expected user-1, got %q", got.User.ID)
+	}
+
+	if got.UserID != "" {
+		t.Fatalf("expected empty top-level user_id, got %q", got.UserID)
+	}
+
+	if got.Username != "" {
+		t.Fatalf("expected empty top-level username, got %q", got.Username)
+	}
+}

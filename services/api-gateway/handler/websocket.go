@@ -237,7 +237,7 @@ func (h *WebSocketHandler) handleJoin(ctx context.Context, conn *gatewaymanager.
 		return sendJSON(ctx, conn, errorEnvelope("BAD_REQUEST", "failed to join room"))
 	}
 
-	payload, err := json.Marshal(typingEnvelope(conn, roomID))
+	payload, err := json.Marshal(userJoinedEnvelope(conn, roomID))
 	if err != nil {
 		return fmt.Errorf("marshal user joined event: %w", err)
 	}
@@ -377,6 +377,23 @@ func sendJSON(ctx context.Context, conn *gatewaymanager.Connection, payload any)
 		return nil
 	default:
 		return fmt.Errorf("websocket send buffer is full")
+	}
+}
+
+func userJoinedEnvelope(conn *gatewaymanager.Connection, roomID string) serverEnvelope {
+	if conn == nil {
+		return serverEnvelope{
+			Type:   "user_joined",
+			RoomID: roomID,
+		}
+	}
+
+	return serverEnvelope{
+		Type:   "user_joined",
+		RoomID: roomID,
+		User: &userPayload{
+			ID: conn.UserID,
+		},
 	}
 }
 
