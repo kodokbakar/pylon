@@ -125,7 +125,9 @@ func TestWebSocketAcceptsAllowedOriginAndEchoesMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial websocket: %v", err)
 	}
-	defer conn.CloseNow()
+	defer func() {
+		_ = conn.CloseNow()
+	}()
 
 	if err := conn.Write(ctx, websocket.MessageText, []byte("hello")); err != nil {
 		t.Fatalf("write websocket message: %v", err)

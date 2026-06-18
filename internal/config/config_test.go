@@ -206,7 +206,7 @@ func TestLoadDotEnvSupportsExportPrefix(t *testing.T) {
 func TestLoadDotEnvSetsExportValueWhenEnvDoesNotExist(t *testing.T) {
 	key := "PYLON_TEST_EXPORT_VALUE"
 	t.Setenv(key, "")
-	os.Unsetenv(key)
+	_ = os.Unsetenv(key)
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".env")

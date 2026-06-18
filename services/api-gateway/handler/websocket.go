@@ -83,7 +83,9 @@ func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer h.manager.Remove(userID, conn)
-	defer conn.Close(websocket.StatusNormalClosure, "connection closed")
+	defer func() {
+		_ = conn.Close(websocket.StatusNormalClosure, "connection closed")
+	}()
 
 	if err := h.readLoop(r.Context(), conn); err != nil {
 		_ = conn.Close(websocket.StatusInternalError, err.Error())

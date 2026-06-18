@@ -123,13 +123,7 @@ func (s *NotificationService) SendNotification(ctx context.Context, input SendNo
 		return nil, err
 	}
 
-	notification, err := s.repo.Create(ctx, CreateNotificationInput{
-		UserID: input.UserID,
-		Type:   input.Type,
-		Title:  input.Title,
-		Body:   input.Body,
-		RoomID: input.RoomID,
-	})
+	notification, err := s.repo.Create(ctx, CreateNotificationInput(input))
 	if err != nil {
 		return nil, fmt.Errorf("create notification: %w", err)
 	}
