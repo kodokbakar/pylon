@@ -105,7 +105,7 @@ func TestWebSocketRejectsUnknownOrigin(t *testing.T) {
 	}
 }
 
-func TestWebSocketAcceptsAllowedOriginAndEchoesMessage(t *testing.T) {
+func TestWebSocketAcceptsAllowedOriginAndRespondsToPing(t *testing.T) {
 	server := newTestServer(t)
 
 	testServer := httptest.NewServer(server.Handler())
@@ -129,7 +129,7 @@ func TestWebSocketAcceptsAllowedOriginAndEchoesMessage(t *testing.T) {
 		_ = conn.CloseNow()
 	}()
 
-	if err := conn.Write(ctx, websocket.MessageText, []byte("hello")); err != nil {
+	if err := conn.Write(ctx, websocket.MessageText, []byte(`{"type":"ping"}`)); err != nil {
 		t.Fatalf("write websocket message: %v", err)
 	}
 
@@ -142,8 +142,45 @@ func TestWebSocketAcceptsAllowedOriginAndEchoesMessage(t *testing.T) {
 		t.Fatalf("expected text message, got %v", messageType)
 	}
 
-	if string(payload) != "hello" {
-		t.Fatalf("expected echoed payload hello, got %q", string(payload))
+	if !strings.Contains(string(payload), `"type":"pong"`) {
+		t.Fatalf("expected pong payload, got %q", string(payload))
+	}
+}
+
+func TestWebSocketAcceptsTokenFromQueryParam(t *testing.T) {
+	server := newTestServer(t)
+
+	testServer := httptest.NewServer(server.Handler())
+	defer testServer.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http") + "/ws?token=" + testJWT(t, "user-123", "test-secret")
+
+	conn, _, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{
+		HTTPHeader: http.Header{
+			"Origin": []string{"http://localhost:5173"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("dial websocket: %v", err)
+	}
+	defer func() {
+		_ = conn.CloseNow()
+	}()
+
+	if err := conn.Write(ctx, websocket.MessageText, []byte(`{"type":"ping"}`)); err != nil {
+		t.Fatalf("write websocket message: %v", err)
+	}
+
+	_, payload, err := conn.Read(ctx)
+	if err != nil {
+		t.Fatalf("read websocket message: %v", err)
+	}
+
+	if !strings.Contains(string(payload), `"type":"pong"`) {
+		t.Fatalf("expected pong payload, got %q", string(payload))
 	}
 }
 

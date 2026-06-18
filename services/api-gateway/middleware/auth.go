@@ -56,21 +56,28 @@ func UserIDFromContext(ctx context.Context) (string, bool) {
 
 func bearerToken(r *http.Request) (string, bool) {
 	header := strings.TrimSpace(r.Header.Get("Authorization"))
-	if header == "" {
-		return "", false
+	if header != "" {
+		token, ok := strings.CutPrefix(header, "Bearer ")
+		if !ok {
+			return "", false
+		}
+
+		token = strings.TrimSpace(token)
+		if token == "" {
+			return "", false
+		}
+
+		return token, true
 	}
 
-	token, ok := strings.CutPrefix(header, "Bearer ")
-	if !ok {
-		return "", false
+	for _, key := range []string{"access_token", "token"} {
+		token := strings.TrimSpace(r.URL.Query().Get(key))
+		if token != "" {
+			return token, true
+		}
 	}
 
-	token = strings.TrimSpace(token)
-	if token == "" {
-		return "", false
-	}
-
-	return token, true
+	return "", false
 }
 
 func (m *AuthMiddleware) validateToken(tokenString string) (string, error) {

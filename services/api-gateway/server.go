@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	chatv1connect "github.com/kodokbakar/pylon/gen/pylon/chat/v1/chatv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
 	internalmiddleware "github.com/kodokbakar/pylon/internal/middleware"
 	"github.com/kodokbakar/pylon/internal/observability"
@@ -41,19 +42,30 @@ func New(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("create auth middleware: %w", err)
 	}
 
+	chatClient := chatv1connect.NewChatServiceClient(
+		clients.Chat.HTTPClient,
+		clients.Chat.BaseURL,
+	)
+
+	webSocketHandler, err := gatewayhandler.NewWebSocketHandler(
+		cfg.WebSocket.MaxConnections,
+		cfg.App.CORSOrigins,
+		cfg.WebSocket.InsecureSkipVerify,
+		chatClient,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create websocket handler: %w", err)
+	}
+
 	server := &Server{
-		cfg:            cfg,
-		clients:        clients,
-		mux:            http.NewServeMux(),
-		authHandler:    gatewayhandler.NewAuthHandler(),
-		roomHandler:    gatewayhandler.NewRoomHandler(),
-		messageHandler: gatewayhandler.NewMessageHandler(),
-		webSocketHandler: gatewayhandler.NewWebSocketHandler(
-			cfg.WebSocket.MaxConnections,
-			cfg.App.CORSOrigins,
-			cfg.WebSocket.InsecureSkipVerify,
-		),
-		authMiddleware: authMiddleware,
+		cfg:              cfg,
+		clients:          clients,
+		mux:              http.NewServeMux(),
+		authHandler:      gatewayhandler.NewAuthHandler(),
+		roomHandler:      gatewayhandler.NewRoomHandler(),
+		messageHandler:   gatewayhandler.NewMessageHandler(),
+		webSocketHandler: webSocketHandler,
+		authMiddleware:   authMiddleware,
 	}
 
 	server.registerRoutes()
