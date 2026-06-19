@@ -17,6 +17,9 @@ import (
 
 var _ presencev1connect.PresenceServiceHandler = (*PresenceHandler)(nil)
 
+// PresenceHandler is an internal Connect RPC handler.
+// Authentication and caller identity enforcement are handled by API Gateway;
+// do not expose this service directly to public clients without adding auth.
 type PresenceHandler struct {
 	service *presenceservice.PresenceService
 }
@@ -35,6 +38,7 @@ func (h *PresenceHandler) SetOnline(
 ) (*connect.Response[emptypb.Empty], error) {
 	if err := h.service.SetOnline(ctx, presenceservice.SetOnlineInput{
 		UserID: req.Msg.GetUserId(),
+		RoomID: req.Msg.GetRoomId(),
 	}); err != nil {
 		return nil, connectError(err)
 	}
@@ -48,6 +52,7 @@ func (h *PresenceHandler) SetOffline(
 ) (*connect.Response[emptypb.Empty], error) {
 	if err := h.service.SetOffline(ctx, presenceservice.SetOfflineInput{
 		UserID: req.Msg.GetUserId(),
+		RoomID: req.Msg.GetRoomId(),
 	}); err != nil {
 		return nil, connectError(err)
 	}

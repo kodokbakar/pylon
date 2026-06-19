@@ -46,10 +46,12 @@ message PresenceEvent {
 
 message SetOnlineRequest {
   string user_id = 1;
+  string room_id = 2;
 }
 
 message SetOfflineRequest {
   string user_id = 1;
+  string room_id = 2;
 }
 
 message SetTypingRequest {

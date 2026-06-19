@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -30,6 +31,10 @@ func TestPresenceKeys(t *testing.T) {
 	if got := roomOnlineKey("room-1"); got != "room:room-1:online" {
 		t.Fatalf("expected room online key, got %q", got)
 	}
+
+	if got := userRoomsKey("user-1"); got != "user:user-1:rooms" {
+		t.Fatalf("expected user rooms key, got %q", got)
+	}
 }
 
 func TestPresenceTTLs(t *testing.T) {
@@ -53,7 +58,7 @@ func TestTypingUserIDFromKey(t *testing.T) {
 	}
 }
 
-func TestUpsertTypingPresenceUpdatesExistingUser(t *testing.T) {
+func TestMarkTypingPresenceUpdatesExistingUser(t *testing.T) {
 	presences := []presenceservice.Presence{
 		{
 			UserID: "user-1",
@@ -62,7 +67,7 @@ func TestUpsertTypingPresenceUpdatesExistingUser(t *testing.T) {
 		},
 	}
 
-	got := upsertTypingPresence(presences, "room-1", "user-1")
+	got := markTypingPresence(presences, "user-1")
 
 	if len(got) != 1 {
 		t.Fatalf("expected 1 presence, got %d", len(got))
@@ -73,19 +78,11 @@ func TestUpsertTypingPresenceUpdatesExistingUser(t *testing.T) {
 	}
 }
 
-func TestUpsertTypingPresenceAddsMissingUser(t *testing.T) {
-	got := upsertTypingPresence(nil, "room-1", "user-1")
+func TestMarkTypingPresenceIgnoresMissingUser(t *testing.T) {
+	got := markTypingPresence(nil, "user-1")
 
-	if len(got) != 1 {
-		t.Fatalf("expected 1 presence, got %d", len(got))
-	}
-
-	if got[0].UserID != "user-1" {
-		t.Fatalf("expected user-1, got %q", got[0].UserID)
-	}
-
-	if got[0].Status != presenceservice.PresenceStatusTyping {
-		t.Fatalf("expected typing status, got %q", got[0].Status)
+	if len(got) != 0 {
+		t.Fatalf("expected no presence for missing online user, got %d", len(got))
 	}
 }
 
@@ -142,5 +139,15 @@ func TestParseLastSeenValueReturnsZeroForMissingValue(t *testing.T) {
 
 	if !got.IsZero() {
 		t.Fatalf("expected zero time, got %s", got)
+	}
+}
+
+func TestExpiredRoomOnlineScoreUsesMilliseconds(t *testing.T) {
+	now := time.Unix(100, 500_000_000).UTC()
+	got := expiredRoomOnlineScore(now)
+
+	want := strconv.FormatInt(now.Add(-PresenceTTL).UnixMilli(), 10)
+	if got != want {
+		t.Fatalf("expected expired score %q, got %q", want, got)
 	}
 }
