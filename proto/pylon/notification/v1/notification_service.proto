@@ -10,7 +10,7 @@ import "google/protobuf/empty.proto";
 // NotificationService handles push notifications
 service NotificationService {
   // SendNotification sends a notification to a user
-  rpc SendNotification(SendNotificationRequest) returns (google.protobuf.Empty);
+  rpc SendNotification(SendNotificationRequest) returns (Notification);
 
   // GetNotifications returns notifications for a user
   rpc GetNotifications(GetNotificationsRequest) returns (GetNotificationsResponse);
@@ -37,6 +37,7 @@ message Notification {
   string room_id = 6;
   bool read = 7;
   google.protobuf.Timestamp created_at = 8;
+  string message_id = 9;
 }
 
 message SendNotificationRequest {
@@ -45,12 +46,14 @@ message SendNotificationRequest {
   string title = 3;
   string body = 4;
   string room_id = 5;
+  string message_id = 6;
 }
 
 message GetNotificationsRequest {
   string user_id = 1;
   int32 limit = 2;
   bool unread_only = 3;
+  int32 offset = 4;
 }
 
 message GetNotificationsResponse {

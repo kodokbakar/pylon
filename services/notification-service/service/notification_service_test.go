@@ -251,6 +251,10 @@ func TestGetNotificationsReturnsRepositoryValues(t *testing.T) {
 					t.Fatalf("expected default limit %d, got %d", DefaultNotificationLimit, input.Limit)
 				}
 
+				if input.Offset != 10 {
+					t.Fatalf("expected offset 10, got %d", input.Offset)
+				}
+
 				return []Notification{
 					{
 						ID:     "notification-1",
@@ -277,6 +281,7 @@ func TestGetNotificationsReturnsRepositoryValues(t *testing.T) {
 
 	result, err := svc.GetNotifications(context.Background(), GetNotificationsInput{
 		UserID: " user-1 ",
+		Offset: 10,
 	})
 	if err != nil {
 		t.Fatalf("get notifications: %v", err)
@@ -346,5 +351,11 @@ func TestMarkAsReadCallsRepository(t *testing.T) {
 func TestNormalizeLimitCapsLargeLimit(t *testing.T) {
 	if got := normalizeLimit(MaxNotificationLimit + 1); got != MaxNotificationLimit {
 		t.Fatalf("expected max limit %d, got %d", MaxNotificationLimit, got)
+	}
+}
+
+func TestNormalizeOffsetRejectsNegativeValue(t *testing.T) {
+	if got := normalizeOffset(-1); got != 0 {
+		t.Fatalf("expected offset 0, got %d", got)
 	}
 }

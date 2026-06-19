@@ -51,6 +51,7 @@ type SendNotificationInput struct {
 type GetNotificationsInput struct {
 	UserID     string
 	Limit      int
+	Offset     int
 	UnreadOnly bool
 }
 
@@ -76,6 +77,7 @@ type CreateNotificationInput struct {
 type ListNotificationsInput struct {
 	UserID     string
 	Limit      int
+	Offset     int
 	UnreadOnly bool
 }
 
@@ -148,10 +150,12 @@ func (s *NotificationService) GetNotifications(ctx context.Context, input GetNot
 	}
 
 	limit := normalizeLimit(input.Limit)
+	offset := normalizeOffset(input.Offset)
 
 	notifications, err := s.repo.ListByUserID(ctx, ListNotificationsInput{
 		UserID:     userID,
 		Limit:      limit,
+		Offset:     offset,
 		UnreadOnly: input.UnreadOnly,
 	})
 	if err != nil {
@@ -234,4 +238,12 @@ func normalizeLimit(limit int) int {
 	}
 
 	return limit
+}
+
+func normalizeOffset(offset int) int {
+	if offset < 0 {
+		return 0
+	}
+
+	return offset
 }

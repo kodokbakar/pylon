@@ -31,10 +31,11 @@ func TestCreateNotificationQueryReturnsNotificationFields(t *testing.T) {
 
 func TestListNotificationsByUserIDQueryUsesUnreadFilterAndLimit(t *testing.T) {
 	expectedParts := []string{
+		"FROM notifications",
 		"WHERE user_id = $1",
 		"AND ($2::boolean = false OR read = false)",
 		"ORDER BY created_at DESC, id DESC",
-		"LIMIT $3",
+		"LIMIT $3 OFFSET $4",
 		"COALESCE(message_id::text, '')",
 	}
 

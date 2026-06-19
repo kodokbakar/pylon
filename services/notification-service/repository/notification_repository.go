@@ -24,11 +24,12 @@ const createNotificationQuery = `
 `
 
 const listNotificationsByUserIDQuery = `
-	SELECT id::text, user_id::text, type, title, body, COALESCE(room_id::text, ''), COALESCE(message_id::text, ''), read, created_at	FROM notifications
+	SELECT id::text, user_id::text, type, title, body, COALESCE(room_id::text, ''), COALESCE(message_id::text, ''), read, created_at
+	FROM notifications
 	WHERE user_id = $1
 	  AND ($2::boolean = false OR read = false)
 	ORDER BY created_at DESC, id DESC
-	LIMIT $3
+	LIMIT $3 OFFSET $4
 `
 
 const countUnreadNotificationsQuery = `
@@ -72,7 +73,7 @@ func (r *NotificationRepository) Create(ctx context.Context, input notifications
 }
 
 func (r *NotificationRepository) ListByUserID(ctx context.Context, input notificationservice.ListNotificationsInput) ([]notificationservice.Notification, error) {
-	rows, err := r.db.Query(ctx, listNotificationsByUserIDQuery, input.UserID, input.UnreadOnly, input.Limit)
+	rows, err := r.db.Query(ctx, listNotificationsByUserIDQuery, input.UserID, input.UnreadOnly, input.Limit, input.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query notifications by user id: %w", err)
 	}

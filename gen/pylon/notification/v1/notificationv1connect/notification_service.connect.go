@@ -48,7 +48,7 @@ const (
 // NotificationServiceClient is a client for the pylon.notification.v1.NotificationService service.
 type NotificationServiceClient interface {
 	// SendNotification sends a notification to a user
-	SendNotification(context.Context, *connect.Request[v1.SendNotificationRequest]) (*connect.Response[emptypb.Empty], error)
+	SendNotification(context.Context, *connect.Request[v1.SendNotificationRequest]) (*connect.Response[v1.Notification], error)
 	// GetNotifications returns notifications for a user
 	GetNotifications(context.Context, *connect.Request[v1.GetNotificationsRequest]) (*connect.Response[v1.GetNotificationsResponse], error)
 	// MarkAsRead marks a notification as read
@@ -66,7 +66,7 @@ func NewNotificationServiceClient(httpClient connect.HTTPClient, baseURL string,
 	baseURL = strings.TrimRight(baseURL, "/")
 	notificationServiceMethods := v1.File_pylon_notification_v1_notification_service_proto.Services().ByName("NotificationService").Methods()
 	return &notificationServiceClient{
-		sendNotification: connect.NewClient[v1.SendNotificationRequest, emptypb.Empty](
+		sendNotification: connect.NewClient[v1.SendNotificationRequest, v1.Notification](
 			httpClient,
 			baseURL+NotificationServiceSendNotificationProcedure,
 			connect.WithSchema(notificationServiceMethods.ByName("SendNotification")),
@@ -89,13 +89,13 @@ func NewNotificationServiceClient(httpClient connect.HTTPClient, baseURL string,
 
 // notificationServiceClient implements NotificationServiceClient.
 type notificationServiceClient struct {
-	sendNotification *connect.Client[v1.SendNotificationRequest, emptypb.Empty]
+	sendNotification *connect.Client[v1.SendNotificationRequest, v1.Notification]
 	getNotifications *connect.Client[v1.GetNotificationsRequest, v1.GetNotificationsResponse]
 	markAsRead       *connect.Client[v1.MarkAsReadRequest, emptypb.Empty]
 }
 
 // SendNotification calls pylon.notification.v1.NotificationService.SendNotification.
-func (c *notificationServiceClient) SendNotification(ctx context.Context, req *connect.Request[v1.SendNotificationRequest]) (*connect.Response[emptypb.Empty], error) {
+func (c *notificationServiceClient) SendNotification(ctx context.Context, req *connect.Request[v1.SendNotificationRequest]) (*connect.Response[v1.Notification], error) {
 	return c.sendNotification.CallUnary(ctx, req)
 }
 
@@ -113,7 +113,7 @@ func (c *notificationServiceClient) MarkAsRead(ctx context.Context, req *connect
 // service.
 type NotificationServiceHandler interface {
 	// SendNotification sends a notification to a user
-	SendNotification(context.Context, *connect.Request[v1.SendNotificationRequest]) (*connect.Response[emptypb.Empty], error)
+	SendNotification(context.Context, *connect.Request[v1.SendNotificationRequest]) (*connect.Response[v1.Notification], error)
 	// GetNotifications returns notifications for a user
 	GetNotifications(context.Context, *connect.Request[v1.GetNotificationsRequest]) (*connect.Response[v1.GetNotificationsResponse], error)
 	// MarkAsRead marks a notification as read
@@ -162,7 +162,7 @@ func NewNotificationServiceHandler(svc NotificationServiceHandler, opts ...conne
 // UnimplementedNotificationServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNotificationServiceHandler struct{}
 
-func (UnimplementedNotificationServiceHandler) SendNotification(context.Context, *connect.Request[v1.SendNotificationRequest]) (*connect.Response[emptypb.Empty], error) {
+func (UnimplementedNotificationServiceHandler) SendNotification(context.Context, *connect.Request[v1.SendNotificationRequest]) (*connect.Response[v1.Notification], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pylon.notification.v1.NotificationService.SendNotification is not implemented"))
 }
 
