@@ -4,6 +4,18 @@ kind: Kustomization
 resources:
   - ../../base
 
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: pylon-config
+    namespace: pylon
+    behavior: merge
+    literals:
+      - APP_ENV=development
+      - APP_LOG_LEVEL=debug
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
 images:
   - name: ghcr.io/kodokbakar/pylon/api-gateway
     newName: pylon/api-gateway
@@ -32,3 +44,40 @@ replicas:
     count: 1
   - name: notification-service
     count: 1
+
+patches:
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: chat-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: presence-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: room-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: notification-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent

@@ -10,7 +10,7 @@ data:
   APP_ENV: "production"
   APP_PORT: "8080"
   APP_LOG_LEVEL: "info"
-  CORS_ORIGINS: "https://pylon.example.com"
+  CORS_ORIGINS: "REPLACE_WITH_ALLOWED_ORIGINS"
 
   DATABASE_MAX_OPEN_CONNS: "25"
   DATABASE_MAX_IDLE_CONNS: "5"

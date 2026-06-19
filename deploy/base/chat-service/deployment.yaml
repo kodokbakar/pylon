@@ -33,7 +33,7 @@ spec:
       containers:
         - name: chat-service
           image: ghcr.io/kodokbakar/pylon/chat-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 9001
               name: http

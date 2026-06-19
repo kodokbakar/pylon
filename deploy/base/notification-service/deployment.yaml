@@ -33,7 +33,7 @@ spec:
       containers:
         - name: notification-service
           image: ghcr.io/kodokbakar/pylon/notification-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 9004
               name: http

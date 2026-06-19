@@ -33,7 +33,7 @@ spec:
       containers:
         - name: presence-service
           image: ghcr.io/kodokbakar/pylon/presence-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 9002
               name: http

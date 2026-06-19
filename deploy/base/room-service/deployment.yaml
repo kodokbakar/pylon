@@ -33,7 +33,7 @@ spec:
       containers:
         - name: room-service
           image: ghcr.io/kodokbakar/pylon/room-service:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 9003
               name: http
