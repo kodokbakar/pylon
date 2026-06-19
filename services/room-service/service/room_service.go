@@ -39,10 +39,13 @@ type Room struct {
 }
 
 type RoomMember struct {
-	UserID   string
-	RoomID   string
-	Role     string
-	JoinedAt time.Time
+	UserID      string
+	RoomID      string
+	Role        string
+	JoinedAt    time.Time
+	Username    string
+	DisplayName string
+	AvatarURL   string
 }
 
 type CreateRoomInput struct {

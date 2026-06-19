@@ -28,10 +28,18 @@ const removeRoomMemberQuery = `
 `
 
 const listRoomMembersQuery = `
-	SELECT room_id, user_id, role, joined_at
-	FROM room_members
-	WHERE room_id = $1
-	ORDER BY joined_at ASC, user_id ASC
+	SELECT
+		rm.room_id,
+		rm.user_id,
+		rm.role,
+		rm.joined_at,
+		u.username,
+		COALESCE(u.display_name, ''),
+		COALESCE(u.avatar_url, '')
+	FROM room_members rm
+	JOIN users u ON u.id = rm.user_id
+	WHERE rm.room_id = $1
+	ORDER BY rm.joined_at ASC, rm.user_id ASC
 `
 
 const getRoomMemberRoleQuery = `
@@ -81,6 +89,9 @@ func (r *MemberRepository) ListByRoomID(ctx context.Context, roomID string) ([]r
 			&member.UserID,
 			&member.Role,
 			&member.JoinedAt,
+			&member.Username,
+			&member.DisplayName,
+			&member.AvatarURL,
 		); err != nil {
 			return nil, fmt.Errorf("scan room member: %w", err)
 		}

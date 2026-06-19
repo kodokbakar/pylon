@@ -362,9 +362,12 @@ func TestGetRoomMembersReturnsRepositoryValue(t *testing.T) {
 
 				return []RoomMember{
 					{
-						RoomID: roomID,
-						UserID: "user-1",
-						Role:   RoomRoleOwner,
+						RoomID:      roomID,
+						UserID:      "user-1",
+						Role:        RoomRoleOwner,
+						Username:    "alice",
+						DisplayName: "Alice",
+						AvatarURL:   "https://example.com/alice.png",
 					},
 				}, nil
 			},
@@ -387,6 +390,18 @@ func TestGetRoomMembersReturnsRepositoryValue(t *testing.T) {
 
 	if members[0].Role != RoomRoleOwner {
 		t.Fatalf("expected owner role, got %q", members[0].Role)
+	}
+
+	if members[0].Username != "alice" {
+		t.Fatalf("expected username alice, got %q", members[0].Username)
+	}
+
+	if members[0].DisplayName != "Alice" {
+		t.Fatalf("expected display name Alice, got %q", members[0].DisplayName)
+	}
+
+	if members[0].AvatarURL != "https://example.com/alice.png" {
+		t.Fatalf("expected avatar url, got %q", members[0].AvatarURL)
 	}
 }
 
