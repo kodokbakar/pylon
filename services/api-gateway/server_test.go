@@ -53,8 +53,34 @@ func TestProtectedEndpointAllowsAuthenticatedRequest(t *testing.T) {
 
 	server.Handler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotImplemented {
-		t.Fatalf("expected status 501, got %d", rec.Code)
+	if rec.Code == http.StatusUnauthorized {
+		t.Fatalf("expected authenticated request to pass auth middleware, got %d", rec.Code)
+	}
+}
+
+func TestMessageRouteRequiresAuthentication(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/rooms/room-1/messages", nil)
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rec.Code)
+	}
+}
+
+func TestRoomJoinRouteRequiresAuthentication(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/room-1/join", nil)
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", rec.Code)
 	}
 }
 
@@ -233,4 +259,60 @@ func testJWT(t *testing.T, subject, secret string) string {
 	}
 
 	return tokenString
+}
+
+func TestRoutesRequireAuthentication(t *testing.T) {
+	server := newTestServer(t)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/ws"},
+		{method: http.MethodGet, path: "/api/v1/rooms"},
+		{method: http.MethodPost, path: "/api/v1/rooms"},
+		{method: http.MethodPost, path: "/api/v1/rooms/room-1/join"},
+		{method: http.MethodPost, path: "/api/v1/rooms/room-1/leave"},
+		{method: http.MethodGet, path: "/api/v1/rooms/room-1/messages"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			rec := httptest.NewRecorder()
+
+			server.Handler().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("expected status 401, got %d", rec.Code)
+			}
+		})
+	}
+}
+
+func TestPublicRoutesDoNotRequireAuthentication(t *testing.T) {
+	server := newTestServer(t)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodGet, path: "/health"},
+		{method: http.MethodPost, path: "/api/v1/auth/register"},
+		{method: http.MethodPost, path: "/api/v1/auth/login"},
+		{method: http.MethodPost, path: "/api/v1/auth/refresh"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			rec := httptest.NewRecorder()
+
+			server.Handler().ServeHTTP(rec, req)
+
+			if rec.Code == http.StatusUnauthorized {
+				t.Fatalf("expected public route to bypass auth, got %d", rec.Code)
+			}
+		})
+	}
 }

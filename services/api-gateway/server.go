@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	chatv1connect "github.com/kodokbakar/pylon/gen/pylon/chat/v1/chatv1connect"
+	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
 	internalmiddleware "github.com/kodokbakar/pylon/internal/middleware"
 	"github.com/kodokbakar/pylon/internal/observability"
@@ -47,6 +48,11 @@ func New(cfg *config.Config) (*Server, error) {
 		clients.Chat.BaseURL,
 	)
 
+	roomClient := roomv1connect.NewRoomServiceClient(
+		clients.Room.HTTPClient,
+		clients.Room.BaseURL,
+	)
+
 	webSocketHandler, err := gatewayhandler.NewWebSocketHandler(
 		cfg.WebSocket.MaxConnections,
 		cfg.App.CORSOrigins,
@@ -62,8 +68,8 @@ func New(cfg *config.Config) (*Server, error) {
 		clients:          clients,
 		mux:              http.NewServeMux(),
 		authHandler:      gatewayhandler.NewAuthHandler(),
-		roomHandler:      gatewayhandler.NewRoomHandler(),
-		messageHandler:   gatewayhandler.NewMessageHandler(),
+		roomHandler:      gatewayhandler.NewRoomHandler(roomClient),
+		messageHandler:   gatewayhandler.NewMessageHandler(chatClient),
 		webSocketHandler: webSocketHandler,
 		authMiddleware:   authMiddleware,
 	}
