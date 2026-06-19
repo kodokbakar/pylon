@@ -368,3 +368,105 @@ func newTestPresenceHandler(t *testing.T, repo *fakePresenceRepository) *Presenc
 
 	return handler
 }
+
+func TestPresenceHandlerSetOnlineMapsInvalidInput(t *testing.T) {
+	handler := newTestPresenceHandler(t, &fakePresenceRepository{})
+
+	_, err := handler.SetOnline(context.Background(), connect.NewRequest(&presencev1.SetOnlineRequest{}))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", connect.CodeOf(err))
+	}
+}
+
+func TestPresenceHandlerSetOfflineMapsInvalidInput(t *testing.T) {
+	handler := newTestPresenceHandler(t, &fakePresenceRepository{})
+
+	_, err := handler.SetOffline(context.Background(), connect.NewRequest(&presencev1.SetOfflineRequest{}))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", connect.CodeOf(err))
+	}
+}
+
+func TestPresenceHandlerSetTypingMapsInvalidInput(t *testing.T) {
+	handler := newTestPresenceHandler(t, &fakePresenceRepository{})
+
+	_, err := handler.SetTyping(context.Background(), connect.NewRequest(&presencev1.SetTypingRequest{
+		UserId: "user-1",
+	}))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", connect.CodeOf(err))
+	}
+}
+
+func TestPresenceHandlerGetPresenceMapsInvalidInput(t *testing.T) {
+	handler := newTestPresenceHandler(t, &fakePresenceRepository{})
+
+	_, err := handler.GetPresence(context.Background(), connect.NewRequest(&presencev1.GetPresenceRequest{}))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", connect.CodeOf(err))
+	}
+}
+
+func TestPresenceHandlerGetRoomPresenceMapsInvalidInput(t *testing.T) {
+	handler := newTestPresenceHandler(t, &fakePresenceRepository{})
+
+	_, err := handler.GetRoomPresence(context.Background(), connect.NewRequest(&presencev1.GetRoomPresenceRequest{}))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", connect.CodeOf(err))
+	}
+}
+
+func TestPresenceHandlerStreamPresenceMapsInvalidInput(t *testing.T) {
+	handler := newTestPresenceHandler(t, &fakePresenceRepository{})
+
+	err := handler.StreamPresence(
+		context.Background(),
+		connect.NewRequest(&presencev1.StreamPresenceRequest{}),
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %v", connect.CodeOf(err))
+	}
+}
+
+func TestPresenceHandlerStreamPresenceReturnsWhenContextCanceled(t *testing.T) {
+	handler := newTestPresenceHandler(t, &fakePresenceRepository{})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := handler.StreamPresence(
+		ctx,
+		connect.NewRequest(&presencev1.StreamPresenceRequest{
+			RoomId: "room-1",
+		}),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("expected nil error for closed stream, got %v", err)
+	}
+}

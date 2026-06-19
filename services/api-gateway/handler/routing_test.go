@@ -329,6 +329,144 @@ func TestMessageHandlerListMessagesMapsNotFound(t *testing.T) {
 	}
 }
 
+func TestRoomHandlerListRoomsRequiresUserID(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{
+		listRoomsFunc: func(ctx context.Context, req *connect.Request[roomv1.ListRoomsRequest]) (*connect.Response[roomv1.ListRoomsResponse], error) {
+			t.Fatal("room client should not be called without user id")
+			return nil, nil
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/rooms", nil)
+	rec := httptest.NewRecorder()
+
+	roomHandler.ListRooms(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRoomHandlerCreateRoomRejectsInvalidJSON(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{
+		createRoomFunc: func(ctx context.Context, req *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error) {
+			t.Fatal("room client should not be called for invalid json")
+			return nil, nil
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(roomHandler.CreateRoom))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms", strings.NewReader(`{invalid-json`))
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRoomHandlerJoinRoomRequiresRoomID(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{})
+
+	handler := requireAuth(t, http.HandlerFunc(roomHandler.JoinRoom))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms//join", nil)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRoomHandlerLeaveRoomRequiresRoomID(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{})
+
+	handler := requireAuth(t, http.HandlerFunc(roomHandler.LeaveRoom))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms//leave", nil)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestMessageHandlerListMessagesRequiresRoomID(t *testing.T) {
+	messageHandler := NewMessageHandler(fakeMessageClient{
+		getMessagesFunc: func(ctx context.Context, req *connect.Request[chatv1.GetMessagesRequest]) (*connect.Response[chatv1.GetMessagesResponse], error) {
+			t.Fatal("message client should not be called without room id")
+			return nil, nil
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(messageHandler.ListMessages))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/rooms//messages", nil)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestWriteConnectErrorMapsAdditionalCodes(t *testing.T) {
+	tests := []struct {
+		name string
+		code connect.Code
+		want int
+	}{
+		{name: "unauthenticated", code: connect.CodeUnauthenticated, want: http.StatusUnauthorized},
+		{name: "permission denied", code: connect.CodePermissionDenied, want: http.StatusForbidden},
+		{name: "already exists", code: connect.CodeAlreadyExists, want: http.StatusConflict},
+		{name: "failed precondition", code: connect.CodeFailedPrecondition, want: http.StatusPreconditionFailed},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+
+			writeConnectError(rec, connect.NewError(tt.code, errors.New("upstream message")))
+
+			if rec.Code != tt.want {
+				t.Fatalf("expected status %d, got %d body=%s", tt.want, rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestRoomTypeToProtoSupportsAliasesAndDefault(t *testing.T) {
+	tests := []struct {
+		name string
+		in   string
+		want roomv1.RoomType
+	}{
+		{name: "direct", in: "direct", want: roomv1.RoomType_ROOM_TYPE_DIRECT},
+		{name: "dm", in: "dm", want: roomv1.RoomType_ROOM_TYPE_DIRECT},
+		{name: "group", in: " group ", want: roomv1.RoomType_ROOM_TYPE_GROUP},
+		{name: "unknown", in: "unknown", want: roomv1.RoomType_ROOM_TYPE_UNSPECIFIED},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := roomTypeToProto(tt.in); got != tt.want {
+				t.Fatalf("expected %v, got %v", tt.want, got)
+			}
+		})
+	}
+}
+
 func requireAuth(t *testing.T, next http.Handler) http.Handler {
 	t.Helper()
 
