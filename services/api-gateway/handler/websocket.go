@@ -132,8 +132,8 @@ func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	metrics.IncActiveConnections("unknown")
-	defer metrics.DecActiveConnections("unknown")
+	metrics.IncActiveConnections(metrics.RoomTypeAll)
+	defer metrics.DecActiveConnections(metrics.RoomTypeAll)
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()

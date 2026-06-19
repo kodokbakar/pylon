@@ -5,6 +5,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+const RoomTypeAll = "all"
+
 var (
 	activeConnections = promauto.With(defaultRegistry).NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -38,16 +40,16 @@ var (
 )
 
 func IncActiveConnections(roomType string) {
-	activeConnections.WithLabelValues(normalizeLabel(roomType, "unknown")).Inc()
+	activeConnections.WithLabelValues(normalizeLabel(roomType, RoomTypeAll)).Inc()
 }
 
 func DecActiveConnections(roomType string) {
-	activeConnections.WithLabelValues(normalizeLabel(roomType, "unknown")).Dec()
+	activeConnections.WithLabelValues(normalizeLabel(roomType, RoomTypeAll)).Dec()
 }
 
 func RecordMessageSent(roomType, messageType string) {
 	messagesSent.WithLabelValues(
-		normalizeLabel(roomType, "unknown"),
+		normalizeLabel(roomType, RoomTypeAll),
 		normalizeLabel(messageType, "unknown"),
 	).Inc()
 }

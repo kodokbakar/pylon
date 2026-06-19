@@ -40,6 +40,7 @@ type Message struct {
 
 type SendMessageInput struct {
 	RoomID   string
+	RoomType string
 	SenderID string
 	Content  string
 	Type     MessageType
@@ -147,6 +148,7 @@ func (s *ChatService) SendMessage(ctx context.Context, input SendMessageInput) (
 	}
 
 	input.RoomID = strings.TrimSpace(input.RoomID)
+	input.RoomType = strings.TrimSpace(input.RoomType)
 	input.SenderID = strings.TrimSpace(input.SenderID)
 	input.Content = strings.TrimSpace(input.Content)
 	input.Type = normalizeMessageType(input.Type)
@@ -155,16 +157,21 @@ func (s *ChatService) SendMessage(ctx context.Context, input SendMessageInput) (
 		return nil, err
 	}
 
-	msg, err := s.repo.Create(ctx, CreateMessageInput(input))
+	msg, err := s.repo.Create(ctx, CreateMessageInput{
+		RoomID:   input.RoomID,
+		SenderID: input.SenderID,
+		Content:  input.Content,
+		Type:     input.Type,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("create message: %w", err)
 	}
 
 	if err := s.publisher.PublishMessageCreated(ctx, msg); err != nil {
-		log.Printf("publish message created event failed: %v", err)
+		log.Printf("publish message created event failed: message_id=%s room_id=%s sender_id=%s error=%v", msg.ID, msg.RoomID, msg.SenderID, err)
 	}
 
-	metrics.RecordMessageSent("unknown", string(msg.Type))
+	metrics.RecordMessageSent(input.RoomType, string(msg.Type))
 
 	if dropped := s.broker.Publish(msg.RoomID, msg); dropped > 0 {
 		log.Printf("dropped %d chat stream messages for room %s", dropped, msg.RoomID)

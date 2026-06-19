@@ -121,7 +121,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 
 	if s.consumer != nil {
-		if err := s.consumer.Close(); err != nil && shutdownErr == nil {
+		if err := s.consumer.Close(); err != nil {
 			shutdownErr = fmt.Errorf("close kafka consumer: %w", err)
 		}
 	}

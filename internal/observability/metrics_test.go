@@ -21,9 +21,9 @@ func TestMetricsHandlerReturnsPrometheusMetrics(t *testing.T) {
 	internalmetrics.RecordKafkaMessageConsumed("message-events", "notification-consumer-group")
 	internalmetrics.ObserveKafkaPublish("message-events", 10*time.Millisecond)
 
-	internalmetrics.IncActiveConnections("unknown")
-	internalmetrics.DecActiveConnections("unknown")
-	internalmetrics.RecordMessageSent("unknown", "text")
+	internalmetrics.IncActiveConnections(internalmetrics.RoomTypeAll)
+	internalmetrics.DecActiveConnections(internalmetrics.RoomTypeAll)
+	internalmetrics.RecordMessageSent(internalmetrics.RoomTypeAll, "text")
 	internalmetrics.RecordRoomCreated()
 	internalmetrics.SetUsersOnline(1)
 
