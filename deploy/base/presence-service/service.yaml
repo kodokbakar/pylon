@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: presence-service
+  namespace: pylon
+  labels:
+    app.kubernetes.io/name: presence-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: pylon
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: presence-service
+  ports:
+    - port: 9002
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9090
+      targetPort: http
+      protocol: TCP
+      name: metrics

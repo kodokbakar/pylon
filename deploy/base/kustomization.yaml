@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - ingress.yaml
+  - api-gateway/deployment.yaml
+  - api-gateway/service.yaml
+  - api-gateway/hpa.yaml
+  - chat-service/deployment.yaml
+  - chat-service/service.yaml
+  - chat-service/hpa.yaml
+  - presence-service/deployment.yaml
+  - presence-service/service.yaml
+  - presence-service/hpa.yaml
+  - room-service/deployment.yaml
+  - room-service/service.yaml
+  - room-service/hpa.yaml
+  - notification-service/deployment.yaml
+  - notification-service/service.yaml
+  - notification-service/hpa.yaml
