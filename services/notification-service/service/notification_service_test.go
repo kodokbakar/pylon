@@ -9,10 +9,11 @@ import (
 )
 
 type fakeNotificationRepository struct {
-	createFunc       func(ctx context.Context, input CreateNotificationInput) (*Notification, error)
-	listByUserIDFunc func(ctx context.Context, input ListNotificationsInput) ([]Notification, error)
-	countUnreadFunc  func(ctx context.Context, userID string) (int, error)
-	markAsReadFunc   func(ctx context.Context, notificationID, userID string) error
+	createFunc                      func(ctx context.Context, input CreateNotificationInput) (*Notification, error)
+	listByUserIDFunc                func(ctx context.Context, input ListNotificationsInput) ([]Notification, error)
+	countUnreadFunc                 func(ctx context.Context, userID string) (int, error)
+	listByUserIDWithUnreadCountFunc func(ctx context.Context, input ListNotificationsInput) ([]Notification, int, error)
+	markAsReadFunc                  func(ctx context.Context, notificationID, userID string) error
 }
 
 func (r *fakeNotificationRepository) Create(ctx context.Context, input CreateNotificationInput) (*Notification, error) {
@@ -37,6 +38,27 @@ func (r *fakeNotificationRepository) CountUnread(ctx context.Context, userID str
 	}
 
 	return r.countUnreadFunc(ctx, userID)
+}
+
+func (r *fakeNotificationRepository) ListByUserIDWithUnreadCount(
+	ctx context.Context,
+	input ListNotificationsInput,
+) ([]Notification, int, error) {
+	if r.listByUserIDWithUnreadCountFunc != nil {
+		return r.listByUserIDWithUnreadCountFunc(ctx, input)
+	}
+
+	notifications, err := r.ListByUserID(ctx, input)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	unreadCount, err := r.CountUnread(ctx, input.UserID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return notifications, unreadCount, nil
 }
 
 func (r *fakeNotificationRepository) MarkAsRead(ctx context.Context, notificationID, userID string) error {
@@ -76,6 +98,40 @@ func TestSendNotificationValidatesUserID(t *testing.T) {
 		Type:  NotificationTypeMessage,
 		Title: "New message",
 		Body:  "hello",
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input error, got %v", err)
+	}
+}
+
+func TestSendNotificationRejectsEmptyBody(t *testing.T) {
+	svc, err := NewNotificationService(&fakeNotificationRepository{}, nil)
+	if err != nil {
+		t.Fatalf("create notification service: %v", err)
+	}
+
+	_, err = svc.SendNotification(context.Background(), SendNotificationInput{
+		UserID: "user-1",
+		Type:   NotificationTypeMessage,
+		Title:  "New message",
+		Body:   " ",
+	})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input error, got %v", err)
+	}
+}
+
+func TestSendNotificationRejectsInvalidType(t *testing.T) {
+	svc, err := NewNotificationService(&fakeNotificationRepository{}, nil)
+	if err != nil {
+		t.Fatalf("create notification service: %v", err)
+	}
+
+	_, err = svc.SendNotification(context.Background(), SendNotificationInput{
+		UserID: "user-1",
+		Type:   NotificationType("unknown"),
+		Title:  "New message",
+		Body:   "hello",
 	})
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected invalid input error, got %v", err)
@@ -242,7 +298,7 @@ func TestGetNotificationsValidatesUserID(t *testing.T) {
 func TestGetNotificationsReturnsRepositoryValues(t *testing.T) {
 	svc, err := NewNotificationService(
 		&fakeNotificationRepository{
-			listByUserIDFunc: func(ctx context.Context, input ListNotificationsInput) ([]Notification, error) {
+			listByUserIDWithUnreadCountFunc: func(ctx context.Context, input ListNotificationsInput) ([]Notification, int, error) {
 				if input.UserID != "user-1" {
 					t.Fatalf("expected user-1, got %q", input.UserID)
 				}
@@ -263,14 +319,7 @@ func TestGetNotificationsReturnsRepositoryValues(t *testing.T) {
 						Title:  "New message",
 						Body:   "hello",
 					},
-				}, nil
-			},
-			countUnreadFunc: func(ctx context.Context, userID string) (int, error) {
-				if userID != "user-1" {
-					t.Fatalf("expected user-1, got %q", userID)
-				}
-
-				return 1, nil
+				}, 1, nil
 			},
 		},
 		nil,

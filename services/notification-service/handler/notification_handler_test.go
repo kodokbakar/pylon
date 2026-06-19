@@ -13,10 +13,11 @@ import (
 )
 
 type fakeNotificationRepository struct {
-	createFunc       func(ctx context.Context, input notificationservice.CreateNotificationInput) (*notificationservice.Notification, error)
-	listByUserIDFunc func(ctx context.Context, input notificationservice.ListNotificationsInput) ([]notificationservice.Notification, error)
-	countUnreadFunc  func(ctx context.Context, userID string) (int, error)
-	markAsReadFunc   func(ctx context.Context, notificationID, userID string) error
+	createFunc                      func(ctx context.Context, input notificationservice.CreateNotificationInput) (*notificationservice.Notification, error)
+	listByUserIDFunc                func(ctx context.Context, input notificationservice.ListNotificationsInput) ([]notificationservice.Notification, error)
+	countUnreadFunc                 func(ctx context.Context, userID string) (int, error)
+	listByUserIDWithUnreadCountFunc func(ctx context.Context, input notificationservice.ListNotificationsInput) ([]notificationservice.Notification, int, error)
+	markAsReadFunc                  func(ctx context.Context, notificationID, userID string) error
 }
 
 func (r *fakeNotificationRepository) Create(ctx context.Context, input notificationservice.CreateNotificationInput) (*notificationservice.Notification, error) {
@@ -41,6 +42,27 @@ func (r *fakeNotificationRepository) CountUnread(ctx context.Context, userID str
 	}
 
 	return r.countUnreadFunc(ctx, userID)
+}
+
+func (r *fakeNotificationRepository) ListByUserIDWithUnreadCount(
+	ctx context.Context,
+	input notificationservice.ListNotificationsInput,
+) ([]notificationservice.Notification, int, error) {
+	if r.listByUserIDWithUnreadCountFunc != nil {
+		return r.listByUserIDWithUnreadCountFunc(ctx, input)
+	}
+
+	notifications, err := r.ListByUserID(ctx, input)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	unreadCount, err := r.CountUnread(ctx, input.UserID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return notifications, unreadCount, nil
 }
 
 func (r *fakeNotificationRepository) MarkAsRead(ctx context.Context, notificationID, userID string) error {
@@ -108,7 +130,7 @@ func TestSendNotificationReturnsCreatedNotification(t *testing.T) {
 
 func TestGetNotificationsPassesPaginationFields(t *testing.T) {
 	svc, err := notificationservice.NewNotificationService(&fakeNotificationRepository{
-		listByUserIDFunc: func(ctx context.Context, input notificationservice.ListNotificationsInput) ([]notificationservice.Notification, error) {
+		listByUserIDWithUnreadCountFunc: func(ctx context.Context, input notificationservice.ListNotificationsInput) ([]notificationservice.Notification, int, error) {
 			if input.UserID != "user-1" {
 				t.Fatalf("expected user-1, got %q", input.UserID)
 			}
@@ -134,10 +156,7 @@ func TestGetNotificationsPassesPaginationFields(t *testing.T) {
 					Body:      "hello",
 					MessageID: "message-1",
 				},
-			}, nil
-		},
-		countUnreadFunc: func(ctx context.Context, userID string) (int, error) {
-			return 1, nil
+			}, 1, nil
 		},
 	}, nil)
 	if err != nil {
@@ -169,5 +188,78 @@ func TestGetNotificationsPassesPaginationFields(t *testing.T) {
 
 	if res.Msg.GetNotifications()[0].GetMessageId() != "message-1" {
 		t.Fatalf("expected message-1, got %q", res.Msg.GetNotifications()[0].GetMessageId())
+	}
+}
+
+func TestMarkAsReadPassesRequestFields(t *testing.T) {
+	called := false
+
+	svc, err := notificationservice.NewNotificationService(&fakeNotificationRepository{
+		markAsReadFunc: func(ctx context.Context, notificationID, userID string) error {
+			called = true
+
+			if notificationID != "notification-1" {
+				t.Fatalf("expected notification-1, got %q", notificationID)
+			}
+
+			if userID != "user-1" {
+				t.Fatalf("expected user-1, got %q", userID)
+			}
+
+			return nil
+		},
+	}, nil)
+	if err != nil {
+		t.Fatalf("create notification service: %v", err)
+	}
+
+	handler, err := NewNotificationHandler(svc)
+	if err != nil {
+		t.Fatalf("create handler: %v", err)
+	}
+
+	_, err = handler.MarkAsRead(context.Background(), connect.NewRequest(&notificationv1.MarkAsReadRequest{
+		NotificationId: "notification-1",
+		UserId:         "user-1",
+	}))
+	if err != nil {
+		t.Fatalf("mark as read: %v", err)
+	}
+
+	if !called {
+		t.Fatal("expected mark as read to be called")
+	}
+}
+
+func TestMarkAsReadMapsNotFoundToConnectNotFound(t *testing.T) {
+	svc, err := notificationservice.NewNotificationService(&fakeNotificationRepository{
+		markAsReadFunc: func(ctx context.Context, notificationID, userID string) error {
+			return notificationservice.ErrNotFound
+		},
+	}, nil)
+	if err != nil {
+		t.Fatalf("create notification service: %v", err)
+	}
+
+	handler, err := NewNotificationHandler(svc)
+	if err != nil {
+		t.Fatalf("create handler: %v", err)
+	}
+
+	_, err = handler.MarkAsRead(context.Background(), connect.NewRequest(&notificationv1.MarkAsReadRequest{
+		NotificationId: "missing-notification",
+		UserId:         "user-1",
+	}))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	var connectErr *connect.Error
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %T", err)
+	}
+
+	if connectErr.Code() != connect.CodeNotFound {
+		t.Fatalf("expected not found code, got %v", connectErr.Code())
 	}
 }

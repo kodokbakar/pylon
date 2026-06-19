@@ -46,6 +46,11 @@ const markNotificationAsReadQuery = `
 	  AND user_id = $2
 `
 
+type notificationQueryer interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 func NewNotificationRepository(db *pgxpool.Pool) (*NotificationRepository, error) {
 	if db == nil {
 		return nil, fmt.Errorf("postgres pool is required")
@@ -73,7 +78,67 @@ func (r *NotificationRepository) Create(ctx context.Context, input notifications
 }
 
 func (r *NotificationRepository) ListByUserID(ctx context.Context, input notificationservice.ListNotificationsInput) ([]notificationservice.Notification, error) {
-	rows, err := r.db.Query(ctx, listNotificationsByUserIDQuery, input.UserID, input.UnreadOnly, input.Limit, input.Offset)
+	return listByUserID(ctx, r.db, input)
+}
+
+func (r *NotificationRepository) CountUnread(ctx context.Context, userID string) (int, error) {
+	return countUnread(ctx, r.db, userID)
+}
+
+func (r *NotificationRepository) ListByUserIDWithUnreadCount(
+	ctx context.Context,
+	input notificationservice.ListNotificationsInput,
+) ([]notificationservice.Notification, int, error) {
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		return nil, 0, fmt.Errorf("begin list notifications transaction: %w", err)
+	}
+
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	notifications, err := listByUserID(ctx, tx, input)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list notifications in transaction: %w", err)
+	}
+
+	unreadCount, err := countUnread(ctx, tx, input.UserID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("count unread notifications in transaction: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, 0, fmt.Errorf("commit list notifications transaction: %w", err)
+	}
+
+	committed = true
+
+	return notifications, unreadCount, nil
+}
+
+func (r *NotificationRepository) MarkAsRead(ctx context.Context, notificationID, userID string) error {
+	tag, err := r.db.Exec(ctx, markNotificationAsReadQuery, notificationID, userID)
+	if err != nil {
+		return fmt.Errorf("update notification read status: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("%w: notification %s for user %s", notificationservice.ErrNotFound, notificationID, userID)
+	}
+
+	return nil
+}
+
+func listByUserID(
+	ctx context.Context,
+	db notificationQueryer,
+	input notificationservice.ListNotificationsInput,
+) ([]notificationservice.Notification, error) {
+	rows, err := db.Query(ctx, listNotificationsByUserIDQuery, input.UserID, input.UnreadOnly, input.Limit, input.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("query notifications by user id: %w", err)
 	}
@@ -96,27 +161,14 @@ func (r *NotificationRepository) ListByUserID(ctx context.Context, input notific
 	return notifications, nil
 }
 
-func (r *NotificationRepository) CountUnread(ctx context.Context, userID string) (int, error) {
+func countUnread(ctx context.Context, db notificationQueryer, userID string) (int, error) {
 	var count int
 
-	if err := r.db.QueryRow(ctx, countUnreadNotificationsQuery, userID).Scan(&count); err != nil {
+	if err := db.QueryRow(ctx, countUnreadNotificationsQuery, userID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count unread notifications: %w", err)
 	}
 
 	return count, nil
-}
-
-func (r *NotificationRepository) MarkAsRead(ctx context.Context, notificationID, userID string) error {
-	tag, err := r.db.Exec(ctx, markNotificationAsReadQuery, notificationID, userID)
-	if err != nil {
-		return fmt.Errorf("update notification read status: %w", err)
-	}
-
-	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("%w: notification %s for user %s", notificationservice.ErrNotFound, notificationID, userID)
-	}
-
-	return nil
 }
 
 type scanner interface {

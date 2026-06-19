@@ -18,6 +18,9 @@ import (
 
 var _ notificationv1connect.NotificationServiceHandler = (*NotificationHandler)(nil)
 
+// NotificationHandler is an internal Connect RPC handler.
+// Authentication and caller identity enforcement are handled by API Gateway;
+// do not expose this service directly to public clients without adding auth.
 type NotificationHandler struct {
 	service *notificationservice.NotificationService
 }

@@ -85,6 +85,7 @@ type NotificationRepository interface {
 	Create(ctx context.Context, input CreateNotificationInput) (*Notification, error)
 	ListByUserID(ctx context.Context, input ListNotificationsInput) ([]Notification, error)
 	CountUnread(ctx context.Context, userID string) (int, error)
+	ListByUserIDWithUnreadCount(ctx context.Context, input ListNotificationsInput) ([]Notification, int, error)
 	MarkAsRead(ctx context.Context, notificationID, userID string) error
 }
 
@@ -152,19 +153,14 @@ func (s *NotificationService) GetNotifications(ctx context.Context, input GetNot
 	limit := normalizeLimit(input.Limit)
 	offset := normalizeOffset(input.Offset)
 
-	notifications, err := s.repo.ListByUserID(ctx, ListNotificationsInput{
+	notifications, unreadCount, err := s.repo.ListByUserIDWithUnreadCount(ctx, ListNotificationsInput{
 		UserID:     userID,
 		Limit:      limit,
 		Offset:     offset,
 		UnreadOnly: input.UnreadOnly,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("list notifications: %w", err)
-	}
-
-	unreadCount, err := s.repo.CountUnread(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("count unread notifications: %w", err)
+		return nil, fmt.Errorf("list notifications with unread count: %w", err)
 	}
 
 	return &GetNotificationsResult{
