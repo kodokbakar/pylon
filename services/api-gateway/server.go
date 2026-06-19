@@ -4,6 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kodokbakar/pylon/internal/database"
+	gatewayauth "github.com/kodokbakar/pylon/services/api-gateway/auth"
 
 	chatv1connect "github.com/kodokbakar/pylon/gen/pylon/chat/v1/chatv1connect"
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
@@ -21,6 +27,7 @@ type Server struct {
 	clients          *gatewayclient.Clients
 	mux              *http.ServeMux
 	httpServer       *http.Server
+	authDB           *pgxpool.Pool
 	authHandler      *gatewayhandler.AuthHandler
 	roomHandler      *gatewayhandler.RoomHandler
 	messageHandler   *gatewayhandler.MessageHandler
@@ -63,11 +70,17 @@ func New(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("create websocket handler: %w", err)
 	}
 
+	authService, authDB, err := newAuthService(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("create auth service: %w", err)
+	}
+
 	server := &Server{
 		cfg:              cfg,
 		clients:          clients,
 		mux:              http.NewServeMux(),
-		authHandler:      gatewayhandler.NewAuthHandler(),
+		authDB:           authDB,
+		authHandler:      gatewayhandler.NewAuthHandler(authService),
 		roomHandler:      gatewayhandler.NewRoomHandler(roomClient),
 		messageHandler:   gatewayhandler.NewMessageHandler(chatClient),
 		webSocketHandler: webSocketHandler,
@@ -82,6 +95,34 @@ func New(cfg *config.Config) (*Server, error) {
 	}
 
 	return server, nil
+}
+
+func newAuthService(cfg *config.Config) (gatewayhandler.AuthService, *pgxpool.Pool, error) {
+	if strings.TrimSpace(cfg.Database.URL) == "" {
+		return gatewayauth.NewUnavailableService("database url is not configured"), nil, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	db, err := database.NewPostgresPool(ctx, cfg.Database)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create postgres pool: %w", err)
+	}
+
+	repo, err := gatewayauth.NewRepository(db)
+	if err != nil {
+		db.Close()
+		return nil, nil, fmt.Errorf("create auth repository: %w", err)
+	}
+
+	authService, err := gatewayauth.NewService(repo, cfg.JWT)
+	if err != nil {
+		db.Close()
+		return nil, nil, fmt.Errorf("create auth domain service: %w", err)
+	}
+
+	return authService, db, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -104,7 +145,14 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.webSocketHandler.Shutdown()
 
 	if err := s.httpServer.Shutdown(ctx); err != nil {
+		if s.authDB != nil {
+			s.authDB.Close()
+		}
 		return fmt.Errorf("shutdown api gateway server: %w", err)
+	}
+
+	if s.authDB != nil {
+		s.authDB.Close()
 	}
 
 	return nil

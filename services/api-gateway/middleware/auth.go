@@ -16,6 +16,7 @@ type contextKey string
 const (
 	userIDContextKey   contextKey = "user_id"
 	usernameContextKey contextKey = "username"
+	emailContextKey    contextKey = "email"
 )
 
 type AuthMiddleware struct {
@@ -41,7 +42,7 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, username, err := m.validateToken(tokenString)
+		userID, username, email, err := m.validateToken(tokenString)
 		if err != nil {
 			response.Error(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 			return
@@ -51,9 +52,17 @@ func (m *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		if username != "" {
 			ctx = context.WithValue(ctx, usernameContextKey, username)
 		}
+		if email != "" {
+			ctx = context.WithValue(ctx, emailContextKey, email)
+		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func EmailFromContext(ctx context.Context) (string, bool) {
+	email, ok := ctx.Value(emailContextKey).(string)
+	return email, ok
 }
 
 func UserIDFromContext(ctx context.Context) (string, bool) {
@@ -92,7 +101,7 @@ func bearerToken(r *http.Request) (string, bool) {
 	return "", false
 }
 
-func (m *AuthMiddleware) validateToken(tokenString string) (string, string, error) {
+func (m *AuthMiddleware) validateToken(tokenString string) (string, string, string, error) {
 	claims := jwt.MapClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -103,24 +112,29 @@ func (m *AuthMiddleware) validateToken(tokenString string) (string, string, erro
 		return m.secret, nil
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("parse jwt token: %w", err)
+		return "", "", "", fmt.Errorf("parse jwt token: %w", err)
 	}
 
 	if !token.Valid {
-		return "", "", fmt.Errorf("jwt token is invalid")
+		return "", "", "", fmt.Errorf("jwt token is invalid")
 	}
 
 	subject, err := claims.GetSubject()
 	if err != nil {
-		return "", "", fmt.Errorf("get jwt subject: %w", err)
+		return "", "", "", fmt.Errorf("get jwt subject: %w", err)
 	}
 
 	subject = strings.TrimSpace(subject)
 	if subject == "" {
-		return "", "", fmt.Errorf("jwt subject is required")
+		return "", "", "", fmt.Errorf("jwt subject is required")
 	}
 
-	return subject, stringClaim(claims, "username", "preferred_username", "name"), nil
+	tokenType := stringClaim(claims, "token_type")
+	if tokenType != "" && tokenType != "access" {
+		return "", "", "", fmt.Errorf("jwt token is not an access token")
+	}
+
+	return subject, stringClaim(claims, "username", "preferred_username", "name"), stringClaim(claims, "email"), nil
 }
 
 func stringClaim(claims jwt.MapClaims, keys ...string) string {

@@ -92,8 +92,8 @@ func TestAuthEndpointIsReachable(t *testing.T) {
 
 	server.Handler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotImplemented {
-		t.Fatalf("expected status 501, got %d", rec.Code)
+	if rec.Code == http.StatusUnauthorized {
+		t.Fatalf("expected auth endpoint to be public, got %d", rec.Code)
 	}
 }
 
