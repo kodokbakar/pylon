@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -42,6 +45,15 @@ type UserWithPassword struct {
 	PasswordHash string
 }
 
+type RefreshToken struct {
+	ID        string
+	UserID    string
+	TokenHash string
+	ExpiresAt time.Time
+	RevokedAt *time.Time
+	CreatedAt time.Time
+}
+
 type RegisterInput struct {
 	Username string
 	Email    string
@@ -75,12 +87,21 @@ type RefreshResult struct {
 type Repository interface {
 	CreateUser(ctx context.Context, input CreateUserInput) (*User, error)
 	FindUserByEmail(ctx context.Context, email string) (*UserWithPassword, error)
+	StoreRefreshToken(ctx context.Context, input StoreRefreshTokenInput) error
+	FindRefreshToken(ctx context.Context, tokenHash string) (*RefreshToken, error)
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 }
 
 type CreateUserInput struct {
 	Username     string
 	Email        string
 	PasswordHash string
+}
+
+type StoreRefreshTokenInput struct {
+	UserID    string
+	TokenHash string
+	ExpiresAt time.Time
 }
 
 type Service struct {
@@ -141,7 +162,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (*AuthResul
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
-	return s.issueAuthResult(*user)
+	return s.issueAuthResult(ctx, *user)
 }
 
 func (s *Service) Login(ctx context.Context, input LoginInput) (*AuthResult, error) {
@@ -169,12 +190,10 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*AuthResult, err
 		return nil, fmt.Errorf("%w: invalid email or password", ErrInvalidCredentials)
 	}
 
-	return s.issueAuthResult(user.User)
+	return s.issueAuthResult(ctx, user.User)
 }
 
 func (s *Service) Refresh(ctx context.Context, input RefreshInput) (*RefreshResult, error) {
-	_ = ctx
-
 	refreshToken := strings.TrimSpace(input.RefreshToken)
 	if refreshToken == "" {
 		return nil, fmt.Errorf("%w: refresh token is required", ErrInvalidInput)
@@ -185,7 +204,30 @@ func (s *Service) Refresh(ctx context.Context, input RefreshInput) (*RefreshResu
 		return nil, err
 	}
 
-	result, err := s.issueAuthResult(user)
+	tokenHash := hashRefreshToken(refreshToken)
+
+	storedToken, err := s.repo.FindRefreshToken(ctx, tokenHash)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid refresh token", ErrInvalidCredentials)
+	}
+
+	if storedToken.UserID != user.ID {
+		return nil, fmt.Errorf("%w: refresh token user mismatch", ErrInvalidCredentials)
+	}
+
+	if storedToken.RevokedAt != nil {
+		return nil, fmt.Errorf("%w: refresh token has been revoked", ErrInvalidCredentials)
+	}
+
+	if !storedToken.ExpiresAt.After(time.Now().UTC()) {
+		return nil, fmt.Errorf("%w: refresh token has expired", ErrInvalidCredentials)
+	}
+
+	if err := s.repo.RevokeRefreshToken(ctx, tokenHash); err != nil {
+		return nil, fmt.Errorf("revoke refresh token: %w", err)
+	}
+
+	result, err := s.issueAuthResult(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +240,7 @@ func (s *Service) Refresh(ctx context.Context, input RefreshInput) (*RefreshResu
 	}, nil
 }
 
-func (s *Service) issueAuthResult(user User) (*AuthResult, error) {
+func (s *Service) issueAuthResult(ctx context.Context, user User) (*AuthResult, error) {
 	accessToken, accessExpiresAt, err := s.issueToken(user, tokenTypeAccess, s.accessTTL)
 	if err != nil {
 		return nil, fmt.Errorf("issue access token: %w", err)
@@ -207,6 +249,15 @@ func (s *Service) issueAuthResult(user User) (*AuthResult, error) {
 	refreshToken, refreshExpiresAt, err := s.issueToken(user, tokenTypeRefresh, s.refreshTTL)
 	if err != nil {
 		return nil, fmt.Errorf("issue refresh token: %w", err)
+	}
+
+	refreshTokenHash := hashRefreshToken(refreshToken)
+	if err := s.repo.StoreRefreshToken(ctx, StoreRefreshTokenInput{
+		UserID:    user.ID,
+		TokenHash: refreshTokenHash,
+		ExpiresAt: refreshExpiresAt,
+	}); err != nil {
+		return nil, fmt.Errorf("store refresh token: %w", err)
 	}
 
 	return &AuthResult{
@@ -221,12 +272,17 @@ func (s *Service) issueAuthResult(user User) (*AuthResult, error) {
 func (s *Service) issueToken(user User, tokenType string, ttl time.Duration) (string, time.Time, error) {
 	now := time.Now().UTC()
 	expiresAt := now.Add(ttl)
+	tokenID, err := newTokenID()
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("generate token id: %w", err)
+	}
 
 	claims := jwt.MapClaims{
 		"sub":        user.ID,
 		"username":   user.Username,
 		"email":      user.Email,
 		"token_type": tokenType,
+		"jti":        tokenID,
 		"iat":        now.Unix(),
 		"exp":        expiresAt.Unix(),
 	}
@@ -277,6 +333,20 @@ func (s *Service) userFromRefreshToken(tokenString string) (User, error) {
 		Username: stringClaim(claims, "username"),
 		Email:    stringClaim(claims, "email"),
 	}, nil
+}
+
+func newTokenID() (string, error) {
+	var bytes [16]byte
+	if _, err := rand.Read(bytes[:]); err != nil {
+		return "", fmt.Errorf("read random bytes: %w", err)
+	}
+
+	return hex.EncodeToString(bytes[:]), nil
+}
+
+func hashRefreshToken(refreshToken string) string {
+	sum := sha256.Sum256([]byte(refreshToken))
+	return hex.EncodeToString(sum[:])
 }
 
 func validateRegisterInput(username, email, password string) error {

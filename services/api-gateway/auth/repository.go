@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -20,6 +21,24 @@ const findUserByEmailQuery = `
 	SELECT id::text, username, email, password_hash, COALESCE(display_name, ''), COALESCE(avatar_url, ''), created_at
 	FROM users
 	WHERE email = $1
+`
+
+const storeRefreshTokenQuery = `
+	INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+	VALUES ($1, $2, $3)
+`
+
+const findRefreshTokenQuery = `
+	SELECT id::text, user_id::text, token_hash, expires_at, revoked_at, created_at
+	FROM refresh_tokens
+	WHERE token_hash = $1
+`
+
+const revokeRefreshTokenQuery = `
+	UPDATE refresh_tokens
+	SET revoked_at = NOW()
+	WHERE token_hash = $1
+	  AND revoked_at IS NULL
 `
 
 type RepositoryPostgres struct {
@@ -72,6 +91,53 @@ func (r *RepositoryPostgres) FindUserByEmail(ctx context.Context, email string) 
 	}
 
 	return &user, nil
+}
+
+func (r *RepositoryPostgres) StoreRefreshToken(ctx context.Context, input StoreRefreshTokenInput) error {
+	if _, err := r.db.Exec(ctx, storeRefreshTokenQuery, input.UserID, input.TokenHash, input.ExpiresAt); err != nil {
+		return mapPostgresError(err)
+	}
+
+	return nil
+}
+
+func (r *RepositoryPostgres) FindRefreshToken(ctx context.Context, tokenHash string) (*RefreshToken, error) {
+	var refreshToken RefreshToken
+	var revokedAt sql.NullTime
+
+	err := r.db.QueryRow(ctx, findRefreshTokenQuery, tokenHash).Scan(
+		&refreshToken.ID,
+		&refreshToken.UserID,
+		&refreshToken.TokenHash,
+		&refreshToken.ExpiresAt,
+		&revokedAt,
+		&refreshToken.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("%w: invalid refresh token", ErrInvalidCredentials)
+	}
+	if err != nil {
+		return nil, mapPostgresError(err)
+	}
+
+	if revokedAt.Valid {
+		refreshToken.RevokedAt = &revokedAt.Time
+	}
+
+	return &refreshToken, nil
+}
+
+func (r *RepositoryPostgres) RevokeRefreshToken(ctx context.Context, tokenHash string) error {
+	tag, err := r.db.Exec(ctx, revokeRefreshTokenQuery, tokenHash)
+	if err != nil {
+		return mapPostgresError(err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("%w: refresh token is already revoked or not found", ErrInvalidCredentials)
+	}
+
+	return nil
 }
 
 func mapPostgresError(err error) error {
