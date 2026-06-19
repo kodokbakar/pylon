@@ -194,6 +194,18 @@ Access monitoring tools:
 - **Prometheus**: http://localhost:9090
 - **Kafka UI**: http://localhost:8085
 
+Grafana dashboard provisioning files are available in `deploy/grafana`.
+
+Infrastructure panels require the matching exporters to be installed and scraped by Prometheus:
+
+- PostgreSQL panels require `postgres_exporter`.
+- Redis panels require `redis_exporter`.
+- Kubernetes pod and HPA panels require `kube-state-metrics`.
+- Container CPU, memory, and network panels require cAdvisor or kubelet metrics.
+- Kafka lag and broker panels require `kafka-exporter` and/or Kafka JMX exporter.
+
+See `deploy/grafana/README.md` for dashboard details and exporter requirements.
+
 ## Development
 
 ### Available Commands
