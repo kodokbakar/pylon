@@ -125,7 +125,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (topic, group) (kafka_consumergroup_lag{group=~\".*pylon.*|notification-consumer-group\"})",
+          "expr": "sum by (topic, group) (kafka_consumergroup_lag{group=~\"$consumer_group\"})",
           "legendFormat": "{{topic}} {{group}}",
           "datasource": {
             "type": "prometheus",
