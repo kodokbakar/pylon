@@ -151,3 +151,47 @@ func TestExpiredRoomOnlineScoreUsesMilliseconds(t *testing.T) {
 		t.Fatalf("expected expired score %q, got %q", want, got)
 	}
 }
+
+func TestTypingUserIDFromKeyReturnsOriginalWhenPrefixDoesNotMatch(t *testing.T) {
+	got := typingUserIDFromKey("room-1", "room:room-2:typing:user-1")
+	if got != "room:room-2:typing:user-1" {
+		t.Fatalf("expected original key when prefix does not match, got %q", got)
+	}
+}
+
+func TestRedisValueStringFormatsFallbackTypes(t *testing.T) {
+	got := redisValueString(123)
+	if got != "123" {
+		t.Fatalf("expected formatted integer value, got %q", got)
+	}
+}
+
+func TestParseLastSeenValueRejectsInvalidTime(t *testing.T) {
+	_, err := parseLastSeenValue("not-a-time")
+	if err == nil {
+		t.Fatal("expected parse error, got nil")
+	}
+}
+
+func TestMarkTypingPresenceOnlyUpdatesMatchingUser(t *testing.T) {
+	presences := []presenceservice.Presence{
+		{
+			UserID: "user-1",
+			Status: presenceservice.PresenceStatusOnline,
+		},
+		{
+			UserID: "user-2",
+			Status: presenceservice.PresenceStatusOnline,
+		},
+	}
+
+	got := markTypingPresence(presences, "user-2")
+
+	if got[0].Status != presenceservice.PresenceStatusOnline {
+		t.Fatalf("expected user-1 to remain online, got %q", got[0].Status)
+	}
+
+	if got[1].Status != presenceservice.PresenceStatusTyping {
+		t.Fatalf("expected user-2 typing, got %q", got[1].Status)
+	}
+}

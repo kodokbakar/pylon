@@ -402,3 +402,116 @@ func assertRateLimitHeader(t *testing.T, rec *httptest.ResponseRecorder, key, wa
 		t.Fatalf("expected %s %q, got %q", key, want, got)
 	}
 }
+
+func TestNewRateLimiterInitializesRedisStoreAndDefaultLimits(t *testing.T) {
+	limiter := NewRateLimiter(nil)
+	if limiter == nil {
+		t.Fatal("expected limiter")
+	}
+
+	if limiter.store == nil {
+		t.Fatal("expected rate limit store")
+	}
+
+	if limiter.now == nil {
+		t.Fatal("expected clock function")
+	}
+
+	if limiter.memberID == nil {
+		t.Fatal("expected member id function")
+	}
+
+	limit, ok := limiter.limits["POST /api/v1/auth/login"]
+	if !ok {
+		t.Fatal("expected login limit")
+	}
+
+	if limit.Max != 10 {
+		t.Fatalf("expected login max 10, got %d", limit.Max)
+	}
+
+	decision, err := limiter.store.Check(context.Background(), "ratelimit:test", "member-1", time.Unix(100, 0), limit)
+	if err != nil {
+		t.Fatalf("check nil redis store: %v", err)
+	}
+
+	if !decision.Allowed {
+		t.Fatal("expected nil redis store to allow request")
+	}
+}
+
+func TestRedisIntParsesSupportedTypes(t *testing.T) {
+	tests := []struct {
+		name  string
+		value any
+		want  int64
+	}{
+		{name: "int64", value: int64(10), want: 10},
+		{name: "int", value: int(11), want: 11},
+		{name: "string", value: "12", want: 12},
+		{name: "bytes", value: []byte("13"), want: 13},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := redisInt(tt.value)
+			if err != nil {
+				t.Fatalf("parse redis int: %v", err)
+			}
+
+			if got != tt.want {
+				t.Fatalf("expected %d, got %d", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestRedisIntRejectsInvalidValues(t *testing.T) {
+	if _, err := redisInt("not-a-number"); err == nil {
+		t.Fatal("expected string parse error")
+	}
+
+	if _, err := redisInt([]byte("not-a-number")); err == nil {
+		t.Fatal("expected byte parse error")
+	}
+
+	if _, err := redisInt(float64(1)); err == nil {
+		t.Fatal("expected unsupported type error")
+	}
+}
+
+func TestNewRateLimitMemberReturnsUniqueHexValues(t *testing.T) {
+	first, err := newRateLimitMember()
+	if err != nil {
+		t.Fatalf("create first member id: %v", err)
+	}
+
+	second, err := newRateLimitMember()
+	if err != nil {
+		t.Fatalf("create second member id: %v", err)
+	}
+
+	if len(first) != 32 {
+		t.Fatalf("expected first member id length 32, got %d", len(first))
+	}
+
+	if len(second) != 32 {
+		t.Fatalf("expected second member id length 32, got %d", len(second))
+	}
+
+	if first == second {
+		t.Fatal("expected unique member ids")
+	}
+}
+
+func TestRetryAfterSecondsHasMinimumOneSecond(t *testing.T) {
+	now := time.Unix(100, 0)
+
+	if got := retryAfterSeconds(now, now); got != 1 {
+		t.Fatalf("expected minimum retry after 1, got %d", got)
+	}
+
+	if got := retryAfterSeconds(now, now.Add(1500*time.Millisecond)); got != 2 {
+		t.Fatalf("expected rounded retry after 2, got %d", got)
+	}
+}

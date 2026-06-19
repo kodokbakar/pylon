@@ -20,10 +20,20 @@ import (
 const testJWTSecret = "test-secret"
 
 type fakeRoomClient struct {
-	listRoomsFunc func(context.Context, *connect.Request[roomv1.ListRoomsRequest]) (*connect.Response[roomv1.ListRoomsResponse], error)
+	createRoomFunc func(context.Context, *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error)
+	listRoomsFunc  func(context.Context, *connect.Request[roomv1.ListRoomsRequest]) (*connect.Response[roomv1.ListRoomsResponse], error)
+	joinRoomFunc   func(context.Context, *connect.Request[roomv1.JoinRoomRequest]) (*connect.Response[emptypb.Empty], error)
+	leaveRoomFunc  func(context.Context, *connect.Request[roomv1.LeaveRoomRequest]) (*connect.Response[emptypb.Empty], error)
 }
 
-func (c fakeRoomClient) CreateRoom(context.Context, *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error) {
+func (c fakeRoomClient) CreateRoom(
+	ctx context.Context,
+	req *connect.Request[roomv1.CreateRoomRequest],
+) (*connect.Response[roomv1.CreateRoomResponse], error) {
+	if c.createRoomFunc != nil {
+		return c.createRoomFunc(ctx, req)
+	}
+
 	return connect.NewResponse(&roomv1.CreateRoomResponse{}), nil
 }
 
@@ -38,11 +48,25 @@ func (c fakeRoomClient) ListRooms(
 	return connect.NewResponse(&roomv1.ListRoomsResponse{}), nil
 }
 
-func (c fakeRoomClient) JoinRoom(context.Context, *connect.Request[roomv1.JoinRoomRequest]) (*connect.Response[emptypb.Empty], error) {
+func (c fakeRoomClient) JoinRoom(
+	ctx context.Context,
+	req *connect.Request[roomv1.JoinRoomRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	if c.joinRoomFunc != nil {
+		return c.joinRoomFunc(ctx, req)
+	}
+
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
-func (c fakeRoomClient) LeaveRoom(context.Context, *connect.Request[roomv1.LeaveRoomRequest]) (*connect.Response[emptypb.Empty], error) {
+func (c fakeRoomClient) LeaveRoom(
+	ctx context.Context,
+	req *connect.Request[roomv1.LeaveRoomRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	if c.leaveRoomFunc != nil {
+		return c.leaveRoomFunc(ctx, req)
+	}
+
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
@@ -115,6 +139,193 @@ func TestMessageHandlerListMessagesForwardsRoomAndUserID(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestRoomHandlerCreateRoomForwardsAuthenticatedUserIDAndBody(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{
+		createRoomFunc: func(ctx context.Context, req *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error) {
+			if req.Msg.GetCreatorId() != "user-1" {
+				t.Fatalf("expected creator user-1, got %q", req.Msg.GetCreatorId())
+			}
+
+			if req.Msg.GetName() != "general" {
+				t.Fatalf("expected room name general, got %q", req.Msg.GetName())
+			}
+
+			if req.Msg.GetType() != roomv1.RoomType_ROOM_TYPE_CHANNEL {
+				t.Fatalf("expected channel room type, got %v", req.Msg.GetType())
+			}
+
+			if len(req.Msg.GetMemberIds()) != 2 {
+				t.Fatalf("expected 2 normalized members, got %#v", req.Msg.GetMemberIds())
+			}
+
+			return connect.NewResponse(&roomv1.CreateRoomResponse{
+				Room: &roomv1.Room{
+					Id:   "room-1",
+					Name: "general",
+					Type: roomv1.RoomType_ROOM_TYPE_CHANNEL,
+				},
+			}), nil
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(roomHandler.CreateRoom))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms", strings.NewReader(`{
+		"name": " general ",
+		"type": "channel",
+		"member_ids": [" user-2 ", "user-2", "", "user-3"]
+	}`))
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), `"id":"room-1"`) {
+		t.Fatalf("expected room response, got %s", rec.Body.String())
+	}
+}
+
+func TestRoomHandlerJoinRoomForwardsRoomAndUserID(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{
+		joinRoomFunc: func(ctx context.Context, req *connect.Request[roomv1.JoinRoomRequest]) (*connect.Response[emptypb.Empty], error) {
+			if req.Msg.GetRoomId() != "room-1" {
+				t.Fatalf("expected room-1, got %q", req.Msg.GetRoomId())
+			}
+
+			if req.Msg.GetUserId() != "user-1" {
+				t.Fatalf("expected user-1, got %q", req.Msg.GetUserId())
+			}
+
+			return connect.NewResponse(&emptypb.Empty{}), nil
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(roomHandler.JoinRoom))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/room-1/join", nil)
+	req.SetPathValue("id", "room-1")
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), `"joined":true`) {
+		t.Fatalf("expected joined response, got %s", rec.Body.String())
+	}
+}
+
+func TestRoomHandlerLeaveRoomForwardsRoomAndUserID(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{
+		leaveRoomFunc: func(ctx context.Context, req *connect.Request[roomv1.LeaveRoomRequest]) (*connect.Response[emptypb.Empty], error) {
+			if req.Msg.GetRoomId() != "room-1" {
+				t.Fatalf("expected room-1, got %q", req.Msg.GetRoomId())
+			}
+
+			if req.Msg.GetUserId() != "user-1" {
+				t.Fatalf("expected user-1, got %q", req.Msg.GetUserId())
+			}
+
+			return connect.NewResponse(&emptypb.Empty{}), nil
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(roomHandler.LeaveRoom))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms/room-1/leave", nil)
+	req.SetPathValue("id", "room-1")
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), `"left":true`) {
+		t.Fatalf("expected left response, got %s", rec.Body.String())
+	}
+}
+
+func TestRoomHandlerCreateRoomMapsConnectError(t *testing.T) {
+	roomHandler := NewRoomHandler(fakeRoomClient{
+		createRoomFunc: func(ctx context.Context, req *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("room name is required"))
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(roomHandler.CreateRoom))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms", strings.NewReader(`{"name": ""}`))
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), "room name is required") {
+		t.Fatalf("expected upstream validation message, got %s", rec.Body.String())
+	}
+}
+
+func TestMessageHandlerListMessagesRejectsInvalidLimit(t *testing.T) {
+	messageHandler := NewMessageHandler(fakeMessageClient{
+		getMessagesFunc: func(ctx context.Context, req *connect.Request[chatv1.GetMessagesRequest]) (*connect.Response[chatv1.GetMessagesResponse], error) {
+			t.Fatal("message client should not be called for invalid limit")
+			return nil, nil
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(messageHandler.ListMessages))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/rooms/room-1/messages?limit=invalid", nil)
+	req.SetPathValue("id", "room-1")
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestMessageHandlerListMessagesMapsNotFound(t *testing.T) {
+	messageHandler := NewMessageHandler(fakeMessageClient{
+		getMessagesFunc: func(ctx context.Context, req *connect.Request[chatv1.GetMessagesRequest]) (*connect.Response[chatv1.GetMessagesResponse], error) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("room not found"))
+		},
+	})
+
+	handler := requireAuth(t, http.HandlerFunc(messageHandler.ListMessages))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/rooms/room-1/messages", nil)
+	req.SetPathValue("id", "room-1")
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), `"code":"not_found"`) {
+		t.Fatalf("expected not_found response, got %s", rec.Body.String())
 	}
 }
 

@@ -491,3 +491,240 @@ func TestStartContinuesWhenCommitFails(t *testing.T) {
 		t.Fatalf("expected graceful exit after commit failure and shutdown, got %v", err)
 	}
 }
+
+func TestNewConsumerRequiresNotificationService(t *testing.T) {
+	_, err := NewConsumer([]string{"localhost:9092"}, MessageEventsTopic, NotificationConsumerGroupID, fakeRoomClient{}, nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestNewReaderConfigRejectsEmptyTopic(t *testing.T) {
+	_, err := newReaderConfig([]string{"localhost:9092"}, " ", NotificationConsumerGroupID)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestStartRequiresReader(t *testing.T) {
+	var consumer *Consumer
+	if err := consumer.Start(context.Background()); err == nil {
+		t.Fatal("expected nil consumer error")
+	}
+
+	consumer = &Consumer{}
+	if err := consumer.Start(context.Background()); err == nil {
+		t.Fatal("expected missing reader error")
+	}
+}
+
+func TestCloseHandlesNilConsumerAndReader(t *testing.T) {
+	var consumer *Consumer
+	if err := consumer.Close(); err != nil {
+		t.Fatalf("expected nil consumer close to be no-op, got %v", err)
+	}
+
+	consumer = &Consumer{}
+	if err := consumer.Close(); err != nil {
+		t.Fatalf("expected missing reader close to be no-op, got %v", err)
+	}
+}
+
+func TestCloseWrapsReaderError(t *testing.T) {
+	consumer := &Consumer{
+		reader: &fakeMessageReader{closeErr: errTest},
+	}
+
+	err := consumer.Close()
+	if err == nil {
+		t.Fatal("expected close error, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "close kafka reader") {
+		t.Fatalf("expected wrapped close error, got %v", err)
+	}
+}
+
+func TestDecodeMessageCreatedEventRejectsInvalidJSON(t *testing.T) {
+	_, err := DecodeMessageCreatedEvent([]byte(`{invalid-json`))
+	if err == nil {
+		t.Fatal("expected decode error, got nil")
+	}
+}
+
+func TestDecodeMessageCreatedEventRequiresFields(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   MessageCreatedEvent
+		wantErr string
+	}{
+		{
+			name: "event id",
+			event: MessageCreatedEvent{
+				EventType: MessageCreatedEventType,
+				Data: MessageCreatedEventData{
+					RoomID:    "room-1",
+					SenderID:  "user-1",
+					MessageID: "message-1",
+				},
+			},
+			wantErr: "message event id is required",
+		},
+		{
+			name: "room id",
+			event: MessageCreatedEvent{
+				EventID:   "event-1",
+				EventType: MessageCreatedEventType,
+				Data: MessageCreatedEventData{
+					SenderID:  "user-1",
+					MessageID: "message-1",
+				},
+			},
+			wantErr: "message event room id is required",
+		},
+		{
+			name: "sender id",
+			event: MessageCreatedEvent{
+				EventID:   "event-1",
+				EventType: MessageCreatedEventType,
+				Data: MessageCreatedEventData{
+					RoomID:    "room-1",
+					MessageID: "message-1",
+				},
+			},
+			wantErr: "message event sender id is required",
+		},
+		{
+			name: "message id",
+			event: MessageCreatedEvent{
+				EventID:   "event-1",
+				EventType: MessageCreatedEventType,
+				Data: MessageCreatedEventData{
+					RoomID:   "room-1",
+					SenderID: "user-1",
+				},
+			},
+			wantErr: "message event message id is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := DecodeMessageCreatedEvent(mustMessageCreatedPayload(t, tt.event))
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("expected error %q, got %v", tt.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestHandleMessageRequiresDependencies(t *testing.T) {
+	payload := mustMessageCreatedPayload(t, MessageCreatedEvent{
+		EventID:   "event-1",
+		EventType: MessageCreatedEventType,
+		Data: MessageCreatedEventData{
+			MessageID: "message-1",
+			RoomID:    "room-1",
+			SenderID:  "user-1",
+		},
+	})
+
+	var consumer *Consumer
+	if err := consumer.HandleMessage(context.Background(), kafkago.Message{Value: payload}); err == nil {
+		t.Fatal("expected nil consumer error")
+	}
+
+	consumer = &Consumer{notificationSvc: fakeNotificationSender{}}
+	if err := consumer.HandleMessage(context.Background(), kafkago.Message{Value: payload}); err == nil {
+		t.Fatal("expected missing room client error")
+	}
+
+	consumer = &Consumer{roomClient: fakeRoomClient{}}
+	if err := consumer.HandleMessage(context.Background(), kafkago.Message{Value: payload}); err == nil {
+		t.Fatal("expected missing notification service error")
+	}
+}
+
+func TestHandleMessageWrapsRoomClientError(t *testing.T) {
+	payload := mustMessageCreatedPayload(t, MessageCreatedEvent{
+		EventID:   "event-1",
+		EventType: MessageCreatedEventType,
+		Data: MessageCreatedEventData{
+			MessageID: "message-1",
+			RoomID:    "room-1",
+			SenderID:  "user-1",
+		},
+	})
+
+	consumer := &Consumer{
+		roomClient: fakeRoomClient{
+			getRoomMembersFunc: func(
+				ctx context.Context,
+				req *connect.Request[roomv1.GetRoomMembersRequest],
+			) (*connect.Response[roomv1.GetRoomMembersResponse], error) {
+				return nil, errTest
+			},
+		},
+		notificationSvc: fakeNotificationSender{},
+	}
+
+	err := consumer.HandleMessage(context.Background(), kafkago.Message{Value: payload})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "get room members") {
+		t.Fatalf("expected wrapped room client error, got %v", err)
+	}
+}
+
+func TestHandleMessageWrapsNotificationError(t *testing.T) {
+	payload := mustMessageCreatedPayload(t, MessageCreatedEvent{
+		EventID:   "event-1",
+		EventType: MessageCreatedEventType,
+		Data: MessageCreatedEventData{
+			MessageID:      "message-1",
+			RoomID:         "room-1",
+			SenderID:       "user-1",
+			SenderUsername: "alice",
+			Content:        "hello",
+		},
+	})
+
+	consumer := &Consumer{
+		roomClient: fakeRoomClient{
+			getRoomMembersFunc: func(
+				ctx context.Context,
+				req *connect.Request[roomv1.GetRoomMembersRequest],
+			) (*connect.Response[roomv1.GetRoomMembersResponse], error) {
+				return connect.NewResponse(&roomv1.GetRoomMembersResponse{
+					Members: []*roomv1.RoomMember{
+						{UserId: "user-1", RoomId: "room-1"},
+						{UserId: "user-2", RoomId: "room-1"},
+					},
+				}), nil
+			},
+		},
+		notificationSvc: fakeNotificationSender{
+			sendNotificationFunc: func(
+				ctx context.Context,
+				input notificationservice.SendNotificationInput,
+			) (*notificationservice.Notification, error) {
+				return nil, errTest
+			},
+		},
+	}
+
+	err := consumer.HandleMessage(context.Background(), kafkago.Message{Value: payload})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "send notification to user user-2") {
+		t.Fatalf("expected wrapped notification error, got %v", err)
+	}
+}
