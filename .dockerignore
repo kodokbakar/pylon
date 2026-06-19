@@ -1,20 +1,27 @@
 .git
 .github
+.gitignore
+docker-compose.yml
 
-bin
-coverage.out
-coverage.html
+*.md
+docs/
+tests/
 
 .env
 .env.*
 !.env.example
 
+coverage.out
+coverage.html
+
+vendor/
+bin/
+dist/
+
+tmp/
+.cache/
 *.log
-tmp
-.cache
 
 .DS_Store
-.idea
-.vscode
-
-docker-compose.yml
+.idea/
+.vscode/

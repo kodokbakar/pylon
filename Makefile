@@ -1,4 +1,4 @@
-.PHONY: dev proto lint test test-integration build help
+.PHONY: dev proto lint test test-integration build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification help
 
 # Help
 help: ## Show this help
@@ -77,12 +77,22 @@ build-notification: ## Build notification service
 	go build -o bin/notification-service ./cmd/notification-service
 
 # Docker
-docker-build: ## Build Docker images
-	docker build -t pylon/api-gateway -f Dockerfile --target gateway .
-	docker build -t pylon/chat-service -f Dockerfile --target chat .
-	docker build -t pylon/presence-service -f Dockerfile --target presence .
-	docker build -t pylon/room-service -f Dockerfile --target room .
-	docker build -t pylon/notification-service -f Dockerfile --target notification .
+docker-build: docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification ## Build all Docker images
+
+docker-build-gateway: ## Build API Gateway Docker image
+	docker build -f cmd/api-gateway/Dockerfile -t pylon/api-gateway .
+
+docker-build-chat: ## Build Chat Service Docker image
+	docker build -f cmd/chat-service/Dockerfile -t pylon/chat-service .
+
+docker-build-presence: ## Build Presence Service Docker image
+	docker build -f cmd/presence-service/Dockerfile -t pylon/presence-service .
+
+docker-build-room: ## Build Room Service Docker image
+	docker build -f cmd/room-service/Dockerfile -t pylon/room-service .
+
+docker-build-notification: ## Build Notification Service Docker image
+	docker build -f cmd/notification-service/Dockerfile -t pylon/notification-service .
 
 # Database
 migrate-up: ## Run database migrations
