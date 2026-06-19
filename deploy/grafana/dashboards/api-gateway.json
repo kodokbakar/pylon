@@ -1,0 +1,128 @@
+{
+  "uid": "pylon-api-gateway",
+  "title": "Pylon API Gateway",
+  "tags": ["pylon", "api-gateway"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "HTTP Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (method, path, status_code) (rate(pylon_http_requests_total[5m]))",
+          "legendFormat": "{{method}} {{path}} {{status_code}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 2,
+      "title": "HTTP Request Duration P50/P95/P99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum by (le, method, path) (rate(pylon_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "P50 {{method}} {{path}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le, method, path) (rate(pylon_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "P95 {{method}} {{path}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum by (le, method, path) (rate(pylon_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "P99 {{method}} {{path}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 3,
+      "title": "In-Flight Requests",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pylon_http_requests_in_flight",
+          "legendFormat": "In Flight",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 4,
+      "title": "Active WebSocket Connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 9, "x": 6, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (room_type) (pylon_websocket_connections_active)",
+          "legendFormat": "{{room_type}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 5,
+      "title": "WebSocket Messages/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 9, "x": 15, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (room_type, message_type) (rate(pylon_messages_sent_total[5m]))",
+          "legendFormat": "{{room_type}} {{message_type}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 6,
+      "title": "Rate Limited Requests",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (path) (rate(pylon_http_requests_total{status_code=\"429\"}[5m]))",
+          "legendFormat": "{{path}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 7,
+      "title": "Rate Limit Utilization Proxy",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (path) (rate(pylon_http_requests_total{path=~\".*auth.*|.*rooms.*\"}[5m]))",
+          "legendFormat": "{{path}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    }
+  ]
+}
