@@ -18,6 +18,9 @@ import (
 
 var _ roomv1connect.RoomServiceHandler = (*RoomHandler)(nil)
 
+// RoomHandler is an internal Connect RPC handler.
+// Authentication and caller identity enforcement are handled by API Gateway;
+// do not expose this service directly to public clients without adding auth.
 type RoomHandler struct {
 	service *roomservice.RoomService
 }

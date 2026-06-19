@@ -95,7 +95,7 @@ type RemoveRoomMemberInput struct {
 }
 
 type RoomRepository interface {
-	Create(ctx context.Context, input CreateRoomRecordInput) (*Room, error)
+	CreateWithMembers(ctx context.Context, input CreateRoomRecordInput, members []AddRoomMemberInput) (*Room, error)
 	GetByID(ctx context.Context, roomID string) (*Room, error)
 	ListByUserID(ctx context.Context, userID string) ([]Room, error)
 	FindDirectRoom(ctx context.Context, userID, otherUserID string) (*Room, error)
@@ -150,31 +150,26 @@ func (s *RoomService) CreateRoom(ctx context.Context, input CreateRoomInput) (*R
 		}
 	}
 
-	room, err := s.rooms.Create(ctx, CreateRoomRecordInput{
+	members := make([]AddRoomMemberInput, 0, len(memberIDs)+1)
+	members = append(members, AddRoomMemberInput{
+		UserID: input.CreatorID,
+		Role:   RoomRoleOwner,
+	})
+
+	for _, memberID := range memberIDs {
+		members = append(members, AddRoomMemberInput{
+			UserID: memberID,
+			Role:   RoomRoleMember,
+		})
+	}
+
+	room, err := s.rooms.CreateWithMembers(ctx, CreateRoomRecordInput{
 		Name:      input.Name,
 		Type:      input.Type,
 		CreatedBy: input.CreatorID,
-	})
+	}, members)
 	if err != nil {
-		return nil, fmt.Errorf("create room: %w", err)
-	}
-
-	if err := s.members.Add(ctx, AddRoomMemberInput{
-		RoomID: room.ID,
-		UserID: input.CreatorID,
-		Role:   RoomRoleOwner,
-	}); err != nil {
-		return nil, fmt.Errorf("add room owner: %w", err)
-	}
-
-	for _, memberID := range memberIDs {
-		if err := s.members.Add(ctx, AddRoomMemberInput{
-			RoomID: room.ID,
-			UserID: memberID,
-			Role:   RoomRoleMember,
-		}); err != nil {
-			return nil, fmt.Errorf("add room member %s: %w", memberID, err)
-		}
+		return nil, fmt.Errorf("create room with members: %w", err)
 	}
 
 	return room, nil
@@ -253,10 +248,14 @@ func (s *RoomService) LeaveRoom(ctx context.Context, input LeaveRoomInput) error
 	}
 
 	role, err := s.members.GetRole(ctx, roomID, userID)
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("get room member role before leave: %w", err)
 	}
 
+	// Owners cannot leave until a future TransferOwnership/DeleteRoom flow exists.
 	if role == RoomRoleOwner {
 		return fmt.Errorf("%w: owner cannot leave room without ownership transfer", ErrForbidden)
 	}

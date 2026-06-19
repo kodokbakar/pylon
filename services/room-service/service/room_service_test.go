@@ -10,10 +10,11 @@ import (
 )
 
 type fakeRoomRepository struct {
-	createFunc         func(ctx context.Context, input CreateRoomRecordInput) (*Room, error)
-	getByIDFunc        func(ctx context.Context, roomID string) (*Room, error)
-	listByUserIDFunc   func(ctx context.Context, userID string) ([]Room, error)
-	findDirectRoomFunc func(ctx context.Context, userID, otherUserID string) (*Room, error)
+	createFunc            func(ctx context.Context, input CreateRoomRecordInput) (*Room, error)
+	createWithMembersFunc func(ctx context.Context, input CreateRoomRecordInput, members []AddRoomMemberInput) (*Room, error)
+	getByIDFunc           func(ctx context.Context, roomID string) (*Room, error)
+	listByUserIDFunc      func(ctx context.Context, userID string) ([]Room, error)
+	findDirectRoomFunc    func(ctx context.Context, userID, otherUserID string) (*Room, error)
 }
 
 func (r *fakeRoomRepository) Create(ctx context.Context, input CreateRoomRecordInput) (*Room, error) {
@@ -22,6 +23,18 @@ func (r *fakeRoomRepository) Create(ctx context.Context, input CreateRoomRecordI
 	}
 
 	return r.createFunc(ctx, input)
+}
+
+func (r *fakeRoomRepository) CreateWithMembers(
+	ctx context.Context,
+	input CreateRoomRecordInput,
+	members []AddRoomMemberInput,
+) (*Room, error) {
+	if r.createWithMembersFunc == nil {
+		return nil, errors.New("create with members func is not configured")
+	}
+
+	return r.createWithMembersFunc(ctx, input, members)
 }
 
 func (r *fakeRoomRepository) GetByID(ctx context.Context, roomID string) (*Room, error) {
@@ -116,11 +129,11 @@ func TestCreateRoomValidatesName(t *testing.T) {
 }
 
 func TestCreateRoomCreatesRoomAndAddsMembers(t *testing.T) {
-	addedMembers := make([]AddRoomMemberInput, 0)
+	var gotMembers []AddRoomMemberInput
 
 	svc, err := NewRoomService(
 		&fakeRoomRepository{
-			createFunc: func(ctx context.Context, input CreateRoomRecordInput) (*Room, error) {
+			createWithMembersFunc: func(ctx context.Context, input CreateRoomRecordInput, members []AddRoomMemberInput) (*Room, error) {
 				if input.Name != "Team Room" {
 					t.Fatalf("expected Team Room, got %q", input.Name)
 				}
@@ -133,6 +146,8 @@ func TestCreateRoomCreatesRoomAndAddsMembers(t *testing.T) {
 					t.Fatalf("expected user-1 creator, got %q", input.CreatedBy)
 				}
 
+				gotMembers = append(gotMembers, members...)
+
 				return &Room{
 					ID:        "room-1",
 					Name:      input.Name,
@@ -142,12 +157,7 @@ func TestCreateRoomCreatesRoomAndAddsMembers(t *testing.T) {
 				}, nil
 			},
 		},
-		&fakeMemberRepository{
-			addFunc: func(ctx context.Context, input AddRoomMemberInput) error {
-				addedMembers = append(addedMembers, input)
-				return nil
-			},
-		},
+		&fakeMemberRepository{},
 	)
 	if err != nil {
 		t.Fatalf("create room service: %v", err)
@@ -166,16 +176,20 @@ func TestCreateRoomCreatesRoomAndAddsMembers(t *testing.T) {
 		t.Fatalf("expected room-1, got %q", room.ID)
 	}
 
-	if len(addedMembers) != 2 {
-		t.Fatalf("expected 2 member inserts, got %d", len(addedMembers))
+	if len(gotMembers) != 2 {
+		t.Fatalf("expected 2 member inserts, got %d", len(gotMembers))
 	}
 
-	if addedMembers[0].UserID != "user-1" || addedMembers[0].Role != RoomRoleOwner {
-		t.Fatalf("expected creator to be owner, got %+v", addedMembers[0])
+	if gotMembers[0].UserID != "user-1" || gotMembers[0].Role != RoomRoleOwner {
+		t.Fatalf("expected creator to be owner, got %+v", gotMembers[0])
 	}
 
-	if addedMembers[1].UserID != "user-2" || addedMembers[1].Role != RoomRoleMember {
-		t.Fatalf("expected user-2 to be member, got %+v", addedMembers[1])
+	if gotMembers[1].UserID != "user-2" || gotMembers[1].Role != RoomRoleMember {
+		t.Fatalf("expected user-2 to be member, got %+v", gotMembers[1])
+	}
+
+	if gotMembers[0].RoomID != "" || gotMembers[1].RoomID != "" {
+		t.Fatalf("expected service to leave room id assignment to repository transaction, got %+v", gotMembers)
 	}
 }
 
@@ -227,6 +241,18 @@ func TestListRoomsReturnsRepositoryValue(t *testing.T) {
 
 	if rooms[0].ID != "room-1" {
 		t.Fatalf("expected room-1, got %q", rooms[0].ID)
+	}
+}
+
+func TestListRoomsValidatesUserID(t *testing.T) {
+	svc, err := NewRoomService(&fakeRoomRepository{}, &fakeMemberRepository{})
+	if err != nil {
+		t.Fatalf("create room service: %v", err)
+	}
+
+	_, err = svc.ListRooms(context.Background(), ListRoomsInput{})
+	if !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("expected invalid input error, got %v", err)
 	}
 }
 
@@ -340,6 +366,38 @@ func TestLeaveRoomCallsRepository(t *testing.T) {
 
 	if !called {
 		t.Fatal("expected member repository remove to be called")
+	}
+}
+
+func TestLeaveRoomReturnsNilWhenUserIsNotMember(t *testing.T) {
+	removeCalled := false
+
+	svc, err := NewRoomService(
+		&fakeRoomRepository{},
+		&fakeMemberRepository{
+			getRoleFunc: func(ctx context.Context, roomID, userID string) (string, error) {
+				return "", fmt.Errorf("%w: room member %s/%s", ErrNotFound, roomID, userID)
+			},
+			removeFunc: func(ctx context.Context, input RemoveRoomMemberInput) error {
+				removeCalled = true
+				return nil
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("create room service: %v", err)
+	}
+
+	err = svc.LeaveRoom(context.Background(), LeaveRoomInput{
+		RoomID: "room-1",
+		UserID: "user-1",
+	})
+	if err != nil {
+		t.Fatalf("expected nil error for non-member leave, got %v", err)
+	}
+
+	if removeCalled {
+		t.Fatal("expected remove not to be called for non-member leave")
 	}
 }
 
