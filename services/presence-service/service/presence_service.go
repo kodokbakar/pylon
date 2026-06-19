@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kodokbakar/pylon/internal/metrics"
 )
 
 var ErrInvalidInput = errors.New("invalid input")
@@ -171,6 +173,8 @@ func (s *PresenceService) SetOnline(ctx context.Context, input SetOnlineInput) e
 		return fmt.Errorf("set user online: %w", err)
 	}
 
+	metrics.IncUsersOnline()
+
 	if roomID != "" {
 		s.broker.Publish(roomID, PresenceEvent{
 			UserID:    userID,
@@ -193,6 +197,10 @@ func (s *PresenceService) SetOffline(ctx context.Context, input SetOfflineInput)
 
 	if err := s.repo.SetOffline(ctx, userID, roomID); err != nil {
 		return fmt.Errorf("set user offline: %w", err)
+	}
+
+	if roomID == "" {
+		metrics.DecUsersOnline()
 	}
 
 	if roomID != "" {

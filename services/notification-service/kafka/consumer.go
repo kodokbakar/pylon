@@ -13,6 +13,7 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 
 	roomv1 "github.com/kodokbakar/pylon/gen/pylon/room/v1"
+	"github.com/kodokbakar/pylon/internal/metrics"
 	notificationservice "github.com/kodokbakar/pylon/services/notification-service/service"
 )
 
@@ -58,6 +59,8 @@ type Consumer struct {
 	reader          messageReader
 	roomClient      RoomMembersClient
 	notificationSvc NotificationSender
+	topic           string
+	consumerGroup   string
 }
 
 func NewConsumer(
@@ -84,6 +87,8 @@ func NewConsumer(
 		reader:          kafkago.NewReader(readerConfig),
 		roomClient:      roomClient,
 		notificationSvc: notificationSvc,
+		topic:           readerConfig.Topic,
+		consumerGroup:   readerConfig.GroupID,
 	}, nil
 }
 
@@ -129,9 +134,11 @@ func (c *Consumer) Start(ctx context.Context) error {
 		}
 
 		if err := c.HandleMessage(ctx, message); err != nil {
-			log.Printf("failed to handle message event: %v", err)
+			log.Printf("handle kafka message: %v", err)
 			continue
 		}
+
+		metrics.RecordKafkaMessageConsumed(c.metricTopic(), c.metricConsumerGroup())
 
 		if err := c.reader.CommitMessages(ctx, message); err != nil {
 			log.Printf("failed to commit message event: %v", err)
@@ -184,6 +191,32 @@ func (c *Consumer) Close() error {
 	}
 
 	return nil
+}
+
+func (c *Consumer) metricTopic() string {
+	if c == nil {
+		return MessageEventsTopic
+	}
+
+	topic := strings.TrimSpace(c.topic)
+	if topic == "" {
+		return MessageEventsTopic
+	}
+
+	return topic
+}
+
+func (c *Consumer) metricConsumerGroup() string {
+	if c == nil {
+		return NotificationConsumerGroupID
+	}
+
+	consumerGroup := strings.TrimSpace(c.consumerGroup)
+	if consumerGroup == "" {
+		return NotificationConsumerGroupID
+	}
+
+	return consumerGroup
 }
 
 func DecodeMessageCreatedEvent(payload []byte) (*MessageCreatedEvent, error) {

@@ -7,6 +7,8 @@ import (
 	"log"
 	"strings"
 	"time"
+
+	"github.com/kodokbakar/pylon/internal/metrics"
 )
 
 var ErrInvalidInput = errors.New("invalid input")
@@ -159,11 +161,13 @@ func (s *ChatService) SendMessage(ctx context.Context, input SendMessageInput) (
 	}
 
 	if err := s.publisher.PublishMessageCreated(ctx, msg); err != nil {
-		log.Printf("publish message created event failed: message_id=%s room_id=%s sender_id=%s error=%v", msg.ID, msg.RoomID, msg.SenderID, err)
+		log.Printf("publish message created event failed: %v", err)
 	}
 
+	metrics.RecordMessageSent("unknown", string(msg.Type))
+
 	if dropped := s.broker.Publish(msg.RoomID, msg); dropped > 0 {
-		log.Printf("drop streamed message for slow subscribers: message_id=%s room_id=%s dropped=%d", msg.ID, msg.RoomID, dropped)
+		log.Printf("dropped %d chat stream messages for room %s", dropped, msg.RoomID)
 	}
 
 	return msg, nil

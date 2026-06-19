@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - secrets.yaml
+  - prometheus-config.yaml
   - ingress.yaml
   - api-gateway/deployment.yaml
   - api-gateway/service.yaml

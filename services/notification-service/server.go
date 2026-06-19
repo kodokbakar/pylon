@@ -13,6 +13,7 @@ import (
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
 	"github.com/kodokbakar/pylon/internal/database"
+	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 	"github.com/kodokbakar/pylon/internal/observability"
 	notificationhandler "github.com/kodokbakar/pylon/services/notification-service/handler"
 	notificationkafka "github.com/kodokbakar/pylon/services/notification-service/kafka"
@@ -75,7 +76,7 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := notificationv1connect.NewNotificationServiceHandler(handler)
-	mux.Handle(path, httpHandler)
+	mux.Handle(path, internalmetrics.GRPCMiddleware("notification-service", httpHandler))
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 

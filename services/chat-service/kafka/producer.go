@@ -10,6 +10,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
+	"github.com/kodokbakar/pylon/internal/metrics"
 	chatservice "github.com/kodokbakar/pylon/services/chat-service/service"
 )
 
@@ -45,6 +46,7 @@ type messageWriter interface {
 
 type Producer struct {
 	writer messageWriter
+	topic  string
 }
 
 func NewProducer(brokers []string, topic, clientID string) (*Producer, error) {
@@ -76,7 +78,10 @@ func NewProducer(brokers []string, topic, clientID string) (*Producer, error) {
 		},
 	}
 
-	return &Producer{writer: writer}, nil
+	return &Producer{
+		writer: writer,
+		topic:  topic,
+	}, nil
 }
 
 func NewMessageCreatedEvent(msg *chatservice.Message) (*MessageCreatedEvent, error) {
@@ -132,9 +137,19 @@ func (p *Producer) PublishMessageCreated(ctx context.Context, msg *chatservice.M
 		},
 	}
 
+	topic := strings.TrimSpace(p.topic)
+	if topic == "" {
+		topic = MessageEventsTopic
+	}
+
+	startedAt := time.Now()
 	if err := p.writer.WriteMessages(ctx, kafkaMessage); err != nil {
+		metrics.ObserveKafkaPublish(topic, time.Since(startedAt))
 		return fmt.Errorf("write message created event: %w", err)
 	}
+
+	metrics.ObserveKafkaPublish(topic, time.Since(startedAt))
+	metrics.RecordKafkaMessagePublished(topic)
 
 	return nil
 }

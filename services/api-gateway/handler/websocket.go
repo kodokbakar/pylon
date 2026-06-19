@@ -14,6 +14,7 @@ import (
 	"github.com/coder/websocket"
 
 	chatv1 "github.com/kodokbakar/pylon/gen/pylon/chat/v1"
+	"github.com/kodokbakar/pylon/internal/metrics"
 	"github.com/kodokbakar/pylon/internal/response"
 	gatewaymanager "github.com/kodokbakar/pylon/services/api-gateway/manager"
 	gatewaymiddleware "github.com/kodokbakar/pylon/services/api-gateway/middleware"
@@ -125,10 +126,14 @@ func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	wsConn := gatewaymanager.NewConnection(userID, conn, webSocketSendBuffer)
 	wsConn.Username = username
+
 	if !h.manager.AddWithUserLimit(wsConn, 1) {
-		_ = conn.Close(websocket.StatusPolicyViolation, "websocket connection limit reached")
+		_ = conn.Close(websocket.StatusPolicyViolation, "user connection limit exceeded")
 		return
 	}
+
+	metrics.IncActiveConnections("unknown")
+	defer metrics.DecActiveConnections("unknown")
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()

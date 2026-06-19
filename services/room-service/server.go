@@ -10,6 +10,7 @@ import (
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
 	"github.com/kodokbakar/pylon/internal/database"
+	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 	"github.com/kodokbakar/pylon/internal/observability"
 	roomhandler "github.com/kodokbakar/pylon/services/room-service/handler"
 	roomrepository "github.com/kodokbakar/pylon/services/room-service/repository"
@@ -59,7 +60,7 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := roomv1connect.NewRoomServiceHandler(handler)
-	mux.Handle(path, httpHandler)
+	mux.Handle(path, internalmetrics.GRPCMiddleware("room-service", httpHandler))
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 
