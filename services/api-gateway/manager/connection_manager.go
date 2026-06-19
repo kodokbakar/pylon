@@ -59,16 +59,16 @@ func NewConnectionManager(maxConnections int) *ConnectionManager {
 }
 
 func (m *ConnectionManager) Add(conn *Connection) bool {
+	return m.AddWithUserLimit(conn, 0)
+}
+
+func (m *ConnectionManager) AddWithUserLimit(conn *Connection, maxPerUser int) bool {
 	if conn == nil || strings.TrimSpace(conn.UserID) == "" {
 		return false
 	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	if m.countLocked() >= m.maxConnections {
-		return false
-	}
 
 	conn.UserID = strings.TrimSpace(conn.UserID)
 	conn.Username = strings.TrimSpace(conn.Username)
@@ -80,6 +80,14 @@ func (m *ConnectionManager) Add(conn *Connection) bool {
 	}
 	if conn.Send == nil {
 		conn.Send = make(chan []byte, DefaultSendBuffer)
+	}
+
+	if maxPerUser > 0 && len(m.connections[conn.UserID]) >= maxPerUser {
+		return false
+	}
+
+	if m.countLocked() >= m.maxConnections {
+		return false
 	}
 
 	if _, exists := m.connections[conn.UserID]; !exists {

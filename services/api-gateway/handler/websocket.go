@@ -125,7 +125,7 @@ func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	wsConn := gatewaymanager.NewConnection(userID, conn, webSocketSendBuffer)
 	wsConn.Username = username
-	if !h.manager.Add(wsConn) {
+	if !h.manager.AddWithUserLimit(wsConn, 1) {
 		_ = conn.Close(websocket.StatusPolicyViolation, "websocket connection limit reached")
 		return
 	}

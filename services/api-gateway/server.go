@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+
 	"github.com/kodokbakar/pylon/internal/database"
 	gatewayauth "github.com/kodokbakar/pylon/services/api-gateway/auth"
 
@@ -28,11 +30,13 @@ type Server struct {
 	mux              *http.ServeMux
 	httpServer       *http.Server
 	authDB           *pgxpool.Pool
+	redisClient      *redis.Client
 	authHandler      *gatewayhandler.AuthHandler
 	roomHandler      *gatewayhandler.RoomHandler
 	messageHandler   *gatewayhandler.MessageHandler
 	webSocketHandler *gatewayhandler.WebSocketHandler
 	authMiddleware   *gatewaymiddleware.AuthMiddleware
+	rateLimiter      *internalmiddleware.RateLimiter
 }
 
 func New(cfg *config.Config) (*Server, error) {
@@ -75,16 +79,26 @@ func New(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("create auth service: %w", err)
 	}
 
+	rateLimiter, redisClient, err := newRateLimiter(cfg)
+	if err != nil {
+		if authDB != nil {
+			authDB.Close()
+		}
+		return nil, fmt.Errorf("create rate limiter: %w", err)
+	}
+
 	server := &Server{
 		cfg:              cfg,
 		clients:          clients,
 		mux:              http.NewServeMux(),
 		authDB:           authDB,
+		redisClient:      redisClient,
 		authHandler:      gatewayhandler.NewAuthHandler(authService),
 		roomHandler:      gatewayhandler.NewRoomHandler(roomClient),
 		messageHandler:   gatewayhandler.NewMessageHandler(chatClient),
 		webSocketHandler: webSocketHandler,
 		authMiddleware:   authMiddleware,
+		rateLimiter:      rateLimiter,
 	}
 
 	server.registerRoutes()
@@ -125,10 +139,31 @@ func newAuthService(cfg *config.Config) (gatewayhandler.AuthService, *pgxpool.Po
 	return authService, db, nil
 }
 
+func newRateLimiter(cfg *config.Config) (*internalmiddleware.RateLimiter, *redis.Client, error) {
+	if strings.TrimSpace(cfg.Redis.URL) == "" {
+		return nil, nil, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	client, err := database.NewRedisClient(ctx, cfg.Redis)
+	if err != nil {
+		return nil, nil, fmt.Errorf("create redis client: %w", err)
+	}
+
+	return internalmiddleware.NewRateLimiter(client), client, nil
+}
+
 func (s *Server) Handler() http.Handler {
+	handler := http.Handler(s.mux)
+	if s.rateLimiter != nil {
+		handler = s.rateLimiter.RateLimit(handler)
+	}
+
 	return internalmiddleware.Recovery(
 		internalmiddleware.Logger(
-			internalmiddleware.CORSWithOrigins(s.mux, s.cfg.App.CORSOrigins),
+			internalmiddleware.CORSWithOrigins(handler, s.cfg.App.CORSOrigins),
 		),
 	)
 }
@@ -144,18 +179,22 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.webSocketHandler.Shutdown()
 
+	var shutdownErr error
 	if err := s.httpServer.Shutdown(ctx); err != nil {
-		if s.authDB != nil {
-			s.authDB.Close()
-		}
-		return fmt.Errorf("shutdown api gateway server: %w", err)
+		shutdownErr = fmt.Errorf("shutdown api gateway server: %w", err)
 	}
 
 	if s.authDB != nil {
 		s.authDB.Close()
 	}
 
-	return nil
+	if s.redisClient != nil {
+		if err := s.redisClient.Close(); err != nil && shutdownErr == nil {
+			shutdownErr = fmt.Errorf("close redis client: %w", err)
+		}
+	}
+
+	return shutdownErr
 }
 
 func (s *Server) registerRoutes() {

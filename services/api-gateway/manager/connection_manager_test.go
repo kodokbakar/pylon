@@ -45,6 +45,26 @@ func TestConnectionManagerAddRemoveAndCount(t *testing.T) {
 	}
 }
 
+func TestConnectionManagerAddWithUserLimitRejectsSecondConnectionForSameUser(t *testing.T) {
+	manager := NewConnectionManager(10)
+
+	if !manager.AddWithUserLimit(testConnection("user-1"), 1) {
+		t.Fatal("expected first connection to be added")
+	}
+
+	if manager.AddWithUserLimit(testConnection("user-1"), 1) {
+		t.Fatal("expected second connection for same user to be rejected")
+	}
+
+	if !manager.AddWithUserLimit(testConnection("user-2"), 1) {
+		t.Fatal("expected different user connection to be added")
+	}
+
+	if manager.Count() != 2 {
+		t.Fatalf("expected count 2, got %d", manager.Count())
+	}
+}
+
 func TestConnectionManagerRejectsOverLimit(t *testing.T) {
 	manager := NewConnectionManager(1)
 
