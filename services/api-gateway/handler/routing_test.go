@@ -2,8 +2,10 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -142,4 +144,102 @@ func testJWT(t *testing.T, userID string) string {
 	}
 
 	return tokenString
+}
+
+func TestWriteConnectErrorDoesNotLeakDefaultConnectErrorMessage(t *testing.T) {
+	rec := httptest.NewRecorder()
+
+	writeConnectError(rec, connect.NewError(connect.CodeInternal, errors.New("sql: password=secret")))
+
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("expected status 502, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "password=secret") {
+		t.Fatalf("expected internal message to be hidden, got body %q", body)
+	}
+
+	if !strings.Contains(body, "internal service error") {
+		t.Fatalf("expected generic error message, got body %q", body)
+	}
+}
+
+func TestWriteConnectErrorDoesNotLeakNonConnectErrorMessage(t *testing.T) {
+	rec := httptest.NewRecorder()
+
+	writeConnectError(rec, errors.New("dial tcp internal-db:5432 failed"))
+
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("expected status 502, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "internal-db") {
+		t.Fatalf("expected non-connect error details to be hidden, got body %q", body)
+	}
+
+	if !strings.Contains(body, "internal service error") {
+		t.Fatalf("expected generic error message, got body %q", body)
+	}
+}
+
+func TestWriteConnectErrorUsesGenericUnavailableMessage(t *testing.T) {
+	rec := httptest.NewRecorder()
+
+	writeConnectError(rec, connect.NewError(connect.CodeUnavailable, errors.New("chat-service pod 10.0.0.9 refused connection")))
+
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("expected status 502, got %d", rec.Code)
+	}
+
+	body := rec.Body.String()
+	if strings.Contains(body, "10.0.0.9") {
+		t.Fatalf("expected unavailable details to be hidden, got body %q", body)
+	}
+
+	if !strings.Contains(body, "internal service unavailable") {
+		t.Fatalf("expected generic unavailable message, got body %q", body)
+	}
+}
+
+func TestRoomTypeToProtoSupportsChannel(t *testing.T) {
+	got := roomTypeToProto("channel")
+	if got != roomv1.RoomType_ROOM_TYPE_CHANNEL {
+		t.Fatalf("expected channel type, got %v", got)
+	}
+}
+
+func TestDecodeJSONAcceptsUnknownFields(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms", strings.NewReader(`{
+		"name": "general",
+		"type": "channel",
+		"member_ids": ["user-1"],
+		"future_field": "ignored"
+	}`))
+	rec := httptest.NewRecorder()
+
+	var body createRoomRequest
+	if err := decodeJSON(rec, req, &body); err != nil {
+		t.Fatalf("decode json: %v", err)
+	}
+
+	if body.Name != "general" {
+		t.Fatalf("expected room name general, got %q", body.Name)
+	}
+}
+
+func TestDecodeJSONRejectsBodyLargerThanLimit(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/rooms", strings.NewReader(`{"name":"`+strings.Repeat("a", maxJSONBodyBytes)+`"}`))
+	rec := httptest.NewRecorder()
+
+	var body createRoomRequest
+	err := decodeJSON(rec, req, &body)
+	if err == nil {
+		t.Fatal("expected max body size error, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "http: request body too large") {
+		t.Fatalf("expected request body too large error, got %v", err)
+	}
 }

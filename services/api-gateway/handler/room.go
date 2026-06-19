@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,8 @@ import (
 	gatewaymiddleware "github.com/kodokbakar/pylon/services/api-gateway/middleware"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+const maxJSONBodyBytes = 1 << 20 // 1 MiB
 
 type RoomServiceClient interface {
 	CreateRoom(context.Context, *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error)
@@ -61,7 +64,7 @@ func (h *RoomHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body createRoomRequest
-	if err := decodeJSON(r, &body); err != nil {
+	if err := decodeJSON(w, r, &body); err != nil {
 		response.Error(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
@@ -134,10 +137,12 @@ func (h *RoomHandler) LeaveRoom(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func decodeJSON(r *http.Request, dst any) (err error) {
+func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) (err error) {
 	if r.Body == nil {
 		return fmt.Errorf("request body is required")
 	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
 
 	defer func() {
 		closeErr := r.Body.Close()
@@ -147,10 +152,18 @@ func decodeJSON(r *http.Request, dst any) (err error) {
 	}()
 
 	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dst); err != nil {
 		return fmt.Errorf("invalid json body: %w", err)
+	}
+
+	if decoder.More() {
+		return fmt.Errorf("invalid json body: multiple json values are not allowed")
+	}
+
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err == nil && len(bytes.TrimSpace(trailing)) > 0 {
+		return fmt.Errorf("invalid json body: multiple json values are not allowed")
 	}
 
 	return nil
@@ -183,6 +196,8 @@ func roomTypeToProto(roomType string) roomv1.RoomType {
 		return roomv1.RoomType_ROOM_TYPE_DIRECT
 	case "group":
 		return roomv1.RoomType_ROOM_TYPE_GROUP
+	case "channel":
+		return roomv1.RoomType_ROOM_TYPE_CHANNEL
 	default:
 		return roomv1.RoomType_ROOM_TYPE_UNSPECIFIED
 	}

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"connectrpc.com/connect"
@@ -9,9 +10,9 @@ import (
 )
 
 func writeConnectError(w http.ResponseWriter, err error) {
-	connectErr, ok := err.(*connect.Error)
-	if !ok {
-		response.Error(w, http.StatusBadGateway, "upstream_error", err.Error())
+	var connectErr *connect.Error
+	if !errors.As(err, &connectErr) {
+		response.Error(w, http.StatusBadGateway, "upstream_error", "internal service error")
 		return
 	}
 
@@ -29,8 +30,8 @@ func writeConnectError(w http.ResponseWriter, err error) {
 	case connect.CodeFailedPrecondition:
 		response.Error(w, http.StatusPreconditionFailed, "failed_precondition", connectErr.Message())
 	case connect.CodeUnavailable:
-		response.Error(w, http.StatusBadGateway, "service_unavailable", connectErr.Message())
+		response.Error(w, http.StatusBadGateway, "service_unavailable", "internal service unavailable")
 	default:
-		response.Error(w, http.StatusBadGateway, "upstream_error", connectErr.Message())
+		response.Error(w, http.StatusBadGateway, "upstream_error", "internal service error")
 	}
 }
