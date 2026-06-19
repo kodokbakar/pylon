@@ -168,6 +168,7 @@ func TestBuildMessageNotificationInputsSkipsSenderAndTruncatesBody(t *testing.T)
 		EventType: MessageCreatedEventType,
 		Data: MessageCreatedEventData{
 			RoomID:         "room-1",
+			MessageID:      "message-1",
 			SenderID:       "user-1",
 			SenderUsername: "alice",
 			Content:        strings.Repeat("a", 120),
@@ -187,6 +188,10 @@ func TestBuildMessageNotificationInputsSkipsSenderAndTruncatesBody(t *testing.T)
 	for _, notification := range notifications {
 		if notification.UserID == event.Data.SenderID {
 			t.Fatalf("sender should not receive notification: %+v", notification)
+		}
+
+		if notification.MessageID != "message-1" {
+			t.Fatalf("expected message id message-1, got %q", notification.MessageID)
 		}
 
 		if notification.Type != notificationservice.NotificationTypeMessage {
@@ -249,6 +254,10 @@ func TestHandleMessageCreatesNotificationsForRoomMembersExceptSender(t *testing.
 
 				if input.RoomID != "room-1" {
 					t.Fatalf("expected room-1, got %q", input.RoomID)
+				}
+
+				if input.MessageID != "message-1" {
+					t.Fatalf("expected message id message-1, got %q", input.MessageID)
 				}
 
 				if input.Type != notificationservice.NotificationTypeMessage {

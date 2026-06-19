@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     title VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
     room_id UUID REFERENCES rooms(id) ON DELETE SET NULL,
+    message_id UUID,
     read BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
@@ -26,3 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created
     ON notifications(user_id, created_at DESC, id DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_user_message_unique
+    ON notifications(user_id, message_id)
+    WHERE message_id IS NOT NULL;

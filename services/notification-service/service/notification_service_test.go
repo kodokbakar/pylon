@@ -127,6 +127,10 @@ func TestSendNotificationCreatesAndPushesNotification(t *testing.T) {
 					t.Fatalf("expected user-1, got %q", input.UserID)
 				}
 
+				if input.MessageID != "message-1" {
+					t.Fatalf("expected message-1, got %q", input.MessageID)
+				}
+
 				if input.Type != NotificationTypeMessage {
 					t.Fatalf("expected message type, got %q", input.Type)
 				}
@@ -138,6 +142,7 @@ func TestSendNotificationCreatesAndPushesNotification(t *testing.T) {
 					Title:     input.Title,
 					Body:      input.Body,
 					RoomID:    input.RoomID,
+					MessageID: input.MessageID,
 					CreatedAt: now,
 				}, nil
 			},
@@ -159,11 +164,12 @@ func TestSendNotificationCreatesAndPushesNotification(t *testing.T) {
 	}
 
 	notification, err := svc.SendNotification(context.Background(), SendNotificationInput{
-		UserID: " user-1 ",
-		Type:   NotificationTypeMessage,
-		Title:  " New message ",
-		Body:   " hello ",
-		RoomID: " room-1 ",
+		UserID:    " user-1 ",
+		Type:      NotificationTypeMessage,
+		Title:     " New message ",
+		Body:      " hello ",
+		RoomID:    " room-1 ",
+		MessageID: " message-1 ",
 	})
 	if err != nil {
 		t.Fatalf("send notification: %v", err)
@@ -171,6 +177,10 @@ func TestSendNotificationCreatesAndPushesNotification(t *testing.T) {
 
 	if notification.ID != "notification-1" {
 		t.Fatalf("expected notification-1, got %q", notification.ID)
+	}
+
+	if notification.MessageID != "message-1" {
+		t.Fatalf("expected message-1, got %q", notification.MessageID)
 	}
 
 	if !pushed {

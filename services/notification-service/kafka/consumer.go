@@ -233,11 +233,12 @@ func BuildMessageNotificationInputs(event *MessageCreatedEvent, members []*roomv
 		}
 
 		notifications = append(notifications, notificationservice.SendNotificationInput{
-			UserID: userID,
-			Type:   notificationservice.NotificationTypeMessage,
-			Title:  messageNotificationTitle(event),
-			Body:   truncateRunes(event.Data.Content, maxNotificationBodyRunes),
-			RoomID: event.Data.RoomID,
+			UserID:    userID,
+			Type:      notificationservice.NotificationTypeMessage,
+			Title:     messageNotificationTitle(event),
+			Body:      truncateRunes(event.Data.Content, maxNotificationBodyRunes),
+			RoomID:    event.Data.RoomID,
+			MessageID: event.Data.MessageID,
 		})
 	}
 

@@ -34,16 +34,18 @@ type Notification struct {
 	Title     string
 	Body      string
 	RoomID    string
+	MessageID string
 	Read      bool
 	CreatedAt time.Time
 }
 
 type SendNotificationInput struct {
-	UserID string
-	Type   NotificationType
-	Title  string
-	Body   string
-	RoomID string
+	UserID    string
+	Type      NotificationType
+	Title     string
+	Body      string
+	RoomID    string
+	MessageID string
 }
 
 type GetNotificationsInput struct {
@@ -63,11 +65,12 @@ type MarkAsReadInput struct {
 }
 
 type CreateNotificationInput struct {
-	UserID string
-	Type   NotificationType
-	Title  string
-	Body   string
-	RoomID string
+	UserID    string
+	Type      NotificationType
+	Title     string
+	Body      string
+	RoomID    string
+	MessageID string
 }
 
 type ListNotificationsInput struct {
@@ -118,6 +121,7 @@ func (s *NotificationService) SendNotification(ctx context.Context, input SendNo
 	input.Title = strings.TrimSpace(input.Title)
 	input.Body = strings.TrimSpace(input.Body)
 	input.RoomID = strings.TrimSpace(input.RoomID)
+	input.MessageID = strings.TrimSpace(input.MessageID)
 
 	if err := validateSendNotificationInput(input); err != nil {
 		return nil, err

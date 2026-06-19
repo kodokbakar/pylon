@@ -16,14 +16,15 @@ type NotificationRepository struct {
 }
 
 const createNotificationQuery = `
-	INSERT INTO notifications (user_id, type, title, body, room_id)
-	VALUES ($1, $2, $3, $4, NULLIF($5, '')::uuid)
-	RETURNING id::text, user_id::text, type, title, body, COALESCE(room_id::text, ''), read, created_at
+	INSERT INTO notifications (user_id, type, title, body, room_id, message_id)
+	VALUES ($1, $2, $3, $4, NULLIF($5, '')::uuid, NULLIF($6, '')::uuid)
+	ON CONFLICT (user_id, message_id) WHERE message_id IS NOT NULL
+	DO UPDATE SET title = notifications.title
+	RETURNING id::text, user_id::text, type, title, body, COALESCE(room_id::text, ''), COALESCE(message_id::text, ''), read, created_at
 `
 
 const listNotificationsByUserIDQuery = `
-	SELECT id::text, user_id::text, type, title, body, COALESCE(room_id::text, ''), read, created_at
-	FROM notifications
+	SELECT id::text, user_id::text, type, title, body, COALESCE(room_id::text, ''), COALESCE(message_id::text, ''), read, created_at	FROM notifications
 	WHERE user_id = $1
 	  AND ($2::boolean = false OR read = false)
 	ORDER BY created_at DESC, id DESC
@@ -61,6 +62,7 @@ func (r *NotificationRepository) Create(ctx context.Context, input notifications
 		input.Title,
 		input.Body,
 		input.RoomID,
+		input.MessageID,
 	))
 	if err != nil {
 		return nil, fmt.Errorf("insert notification: %w", err)
@@ -131,6 +133,7 @@ func scanNotification(row scanner) (*notificationservice.Notification, error) {
 		&notification.Title,
 		&notification.Body,
 		&notification.RoomID,
+		&notification.MessageID,
 		&notification.Read,
 		&notification.CreatedAt,
 	)
