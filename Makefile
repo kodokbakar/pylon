@@ -1,4 +1,4 @@
-.PHONY: dev proto lint test build help
+.PHONY: dev proto lint test test-integration build help
 
 # Help
 help: ## Show this help
@@ -49,6 +49,9 @@ test: ## Run all tests
 test-cover: ## Run tests with coverage
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
+
+test-integration: ## Run integration tests
+	go test -tags=integration -v ./tests/...
 
 # Build
 build: ## Build all services
