@@ -283,3 +283,47 @@ func assertNoMessage(t *testing.T, conn *Connection) {
 	default:
 	}
 }
+
+func TestNewConnectionTrimsUserIDAndUsesDefaultBuffer(t *testing.T) {
+	conn := NewConnection(" user-1 ", nil, 0)
+
+	if conn.UserID != "user-1" {
+		t.Fatalf("expected trimmed user id, got %q", conn.UserID)
+	}
+
+	if conn.ID == "" {
+		t.Fatal("expected generated connection id")
+	}
+
+	if conn.RoomIDs == nil {
+		t.Fatal("expected room ids map")
+	}
+
+	if conn.Send == nil {
+		t.Fatal("expected send channel")
+	}
+
+	if cap(conn.Send) != DefaultSendBuffer {
+		t.Fatalf("expected default send buffer %d, got %d", DefaultSendBuffer, cap(conn.Send))
+	}
+}
+
+func TestNewConnectionManagerUsesDefaultMaxConnections(t *testing.T) {
+	manager := NewConnectionManager(0)
+
+	if manager.maxConnections != 1000 {
+		t.Fatalf("expected default max connections 1000, got %d", manager.maxConnections)
+	}
+}
+
+func TestConnectionManagerRejectsNilAndEmptyUserConnection(t *testing.T) {
+	manager := NewConnectionManager(10)
+
+	if manager.Add(nil) {
+		t.Fatal("expected nil connection to be rejected")
+	}
+
+	if manager.Add(&Connection{UserID: " "}) {
+		t.Fatal("expected empty user id connection to be rejected")
+	}
+}
