@@ -87,6 +87,7 @@ type Notification struct {
 	RoomId        string                 `protobuf:"bytes,6,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
 	Read          bool                   `protobuf:"varint,7,opt,name=read,proto3" json:"read,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	MessageId     string                 `protobuf:"bytes,9,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -177,6 +178,13 @@ func (x *Notification) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Notification) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
 type SendNotificationRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -184,6 +192,7 @@ type SendNotificationRequest struct {
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Body          string                 `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
 	RoomId        string                 `protobuf:"bytes,5,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	MessageId     string                 `protobuf:"bytes,6,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -253,11 +262,19 @@ func (x *SendNotificationRequest) GetRoomId() string {
 	return ""
 }
 
+func (x *SendNotificationRequest) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
 type GetNotificationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	UnreadOnly    bool                   `protobuf:"varint,3,opt,name=unread_only,json=unreadOnly,proto3" json:"unread_only,omitempty"`
+	Offset        int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -311,6 +328,13 @@ func (x *GetNotificationsRequest) GetUnreadOnly() bool {
 		return x.UnreadOnly
 	}
 	return false
+}
+
+func (x *GetNotificationsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
 }
 
 type GetNotificationsResponse struct {
@@ -421,7 +445,7 @@ var File_pylon_notification_v1_notification_service_proto protoreflect.FileDescr
 
 const file_pylon_notification_v1_notification_service_proto_rawDesc = "" +
 	"\n" +
-	"0pylon/notification/v1/notification_service.proto\x12\x15pylon.notification.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\x86\x02\n" +
+	"0pylon/notification/v1/notification_service.proto\x12\x15pylon.notification.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xa5\x02\n" +
 	"\fNotification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12;\n" +
@@ -431,18 +455,23 @@ const file_pylon_notification_v1_notification_service_proto_rawDesc = "" +
 	"\aroom_id\x18\x06 \x01(\tR\x06roomId\x12\x12\n" +
 	"\x04read\x18\a \x01(\bR\x04read\x129\n" +
 	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xb2\x01\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\t \x01(\tR\tmessageId\"\xd1\x01\n" +
 	"\x17SendNotificationRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12;\n" +
 	"\x04type\x18\x02 \x01(\x0e2'.pylon.notification.v1.NotificationTypeR\x04type\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12\x12\n" +
 	"\x04body\x18\x04 \x01(\tR\x04body\x12\x17\n" +
-	"\aroom_id\x18\x05 \x01(\tR\x06roomId\"i\n" +
+	"\aroom_id\x18\x05 \x01(\tR\x06roomId\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x06 \x01(\tR\tmessageId\"\x81\x01\n" +
 	"\x17GetNotificationsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x1f\n" +
 	"\vunread_only\x18\x03 \x01(\bR\n" +
-	"unreadOnly\"\x88\x01\n" +
+	"unreadOnly\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\"\x88\x01\n" +
 	"\x18GetNotificationsResponse\x12I\n" +
 	"\rnotifications\x18\x01 \x03(\v2#.pylon.notification.v1.NotificationR\rnotifications\x12!\n" +
 	"\funread_count\x18\x02 \x01(\x05R\vunreadCount\"U\n" +
@@ -453,9 +482,9 @@ const file_pylon_notification_v1_notification_service_proto_rawDesc = "" +
 	"\x1dNOTIFICATION_TYPE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19NOTIFICATION_TYPE_MESSAGE\x10\x01\x12\x1c\n" +
 	"\x18NOTIFICATION_TYPE_INVITE\x10\x02\x12\x1d\n" +
-	"\x19NOTIFICATION_TYPE_MENTION\x10\x032\xb6\x02\n" +
-	"\x13NotificationService\x12Z\n" +
-	"\x10SendNotification\x12..pylon.notification.v1.SendNotificationRequest\x1a\x16.google.protobuf.Empty\x12s\n" +
+	"\x19NOTIFICATION_TYPE_MENTION\x10\x032\xc3\x02\n" +
+	"\x13NotificationService\x12g\n" +
+	"\x10SendNotification\x12..pylon.notification.v1.SendNotificationRequest\x1a#.pylon.notification.v1.Notification\x12s\n" +
 	"\x10GetNotifications\x12..pylon.notification.v1.GetNotificationsRequest\x1a/.pylon.notification.v1.GetNotificationsResponse\x12N\n" +
 	"\n" +
 	"MarkAsRead\x12(.pylon.notification.v1.MarkAsReadRequest\x1a\x16.google.protobuf.EmptyBFZDgithub.com/kodokbakar/pylon/gen/pylon/notification/v1;notificationv1b\x06proto3"
@@ -492,7 +521,7 @@ var file_pylon_notification_v1_notification_service_proto_depIdxs = []int32{
 	2, // 4: pylon.notification.v1.NotificationService.SendNotification:input_type -> pylon.notification.v1.SendNotificationRequest
 	3, // 5: pylon.notification.v1.NotificationService.GetNotifications:input_type -> pylon.notification.v1.GetNotificationsRequest
 	5, // 6: pylon.notification.v1.NotificationService.MarkAsRead:input_type -> pylon.notification.v1.MarkAsReadRequest
-	7, // 7: pylon.notification.v1.NotificationService.SendNotification:output_type -> google.protobuf.Empty
+	1, // 7: pylon.notification.v1.NotificationService.SendNotification:output_type -> pylon.notification.v1.Notification
 	4, // 8: pylon.notification.v1.NotificationService.GetNotifications:output_type -> pylon.notification.v1.GetNotificationsResponse
 	7, // 9: pylon.notification.v1.NotificationService.MarkAsRead:output_type -> google.protobuf.Empty
 	7, // [7:10] is the sub-list for method output_type

@@ -74,6 +74,62 @@ func (r *RoomRepository) Create(ctx context.Context, input roomservice.CreateRoo
 	return &room, nil
 }
 
+func (r *RoomRepository) CreateWithMembers(
+	ctx context.Context,
+	input roomservice.CreateRoomRecordInput,
+	members []roomservice.AddRoomMemberInput,
+) (*roomservice.Room, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin create room transaction: %w", err)
+	}
+
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback(ctx)
+		}
+	}()
+
+	var room roomservice.Room
+	var roomType string
+
+	err = tx.QueryRow(ctx, createRoomQuery, input.Name, string(input.Type), input.CreatedBy).Scan(
+		&room.ID,
+		&room.Name,
+		&roomType,
+		&room.CreatedBy,
+		&room.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("insert room: %w", err)
+	}
+
+	room.Type = roomservice.RoomType(roomType)
+
+	for _, member := range members {
+		if member.UserID == "" {
+			continue
+		}
+
+		if member.Role == "" {
+			member.Role = roomservice.RoomRoleMember
+		}
+
+		if _, err := tx.Exec(ctx, addRoomMemberQuery, room.ID, member.UserID, member.Role); err != nil {
+			return nil, fmt.Errorf("insert room member %s: %w", member.UserID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit create room transaction: %w", err)
+	}
+
+	committed = true
+
+	return &room, nil
+}
+
 func (r *RoomRepository) GetByID(ctx context.Context, roomID string) (*roomservice.Room, error) {
 	var room roomservice.Room
 	var roomType string

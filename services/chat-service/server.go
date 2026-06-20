@@ -47,7 +47,18 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("create message repository: %w", err)
 	}
 
-	chatSvc, err := chatdomain.NewChatService(repo, producer)
+	membershipRepo, err := chatrepository.NewMembershipRepository(db)
+	if err != nil {
+		db.Close()
+		_ = producer.Close()
+		return nil, fmt.Errorf("create membership repository: %w", err)
+	}
+
+	chatSvc, err := chatdomain.NewChatService(
+		repo,
+		producer,
+		chatdomain.WithRoomMembershipChecker(membershipRepo),
+	)
 	if err != nil {
 		db.Close()
 		_ = producer.Close()

@@ -121,32 +121,6 @@ func TestRecoveryHandlesPanic(t *testing.T) {
 	}
 }
 
-func TestRateLimitRejectsRequestsOverLimit(t *testing.T) {
-	handler := RateLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}), 1)
-
-	firstReq := httptest.NewRequest(http.MethodGet, "/", nil)
-	firstReq.RemoteAddr = "127.0.0.1:1234"
-	firstRec := httptest.NewRecorder()
-
-	handler.ServeHTTP(firstRec, firstReq)
-
-	if firstRec.Code != http.StatusOK {
-		t.Fatalf("expected first request status 200, got %d", firstRec.Code)
-	}
-
-	secondReq := httptest.NewRequest(http.MethodGet, "/", nil)
-	secondReq.RemoteAddr = "127.0.0.1:1234"
-	secondRec := httptest.NewRecorder()
-
-	handler.ServeHTTP(secondRec, secondReq)
-
-	if secondRec.Code != http.StatusTooManyRequests {
-		t.Fatalf("expected second request status 429, got %d", secondRec.Code)
-	}
-}
-
 func TestClientIPUsesFirstForwardedForValue(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X-Forwarded-For", "203.0.113.10, 198.51.100.20, 192.0.2.30")

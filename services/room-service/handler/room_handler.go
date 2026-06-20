@@ -18,6 +18,9 @@ import (
 
 var _ roomv1connect.RoomServiceHandler = (*RoomHandler)(nil)
 
+// RoomHandler is an internal Connect RPC handler.
+// Authentication and caller identity enforcement are handled by API Gateway;
+// do not expose this service directly to public clients without adding auth.
 type RoomHandler struct {
 	service *roomservice.RoomService
 }
@@ -207,10 +210,13 @@ func domainMemberToProto(member *roomservice.RoomMember) *roomv1.RoomMember {
 	}
 
 	return &roomv1.RoomMember{
-		UserId:   member.UserID,
-		RoomId:   member.RoomID,
-		Role:     member.Role,
-		JoinedAt: timestampOrNil(member.JoinedAt),
+		UserId:      member.UserID,
+		RoomId:      member.RoomID,
+		Role:        member.Role,
+		JoinedAt:    timestampOrNil(member.JoinedAt),
+		Username:    member.Username,
+		DisplayName: member.DisplayName,
+		AvatarUrl:   member.AvatarURL,
 	}
 }
 

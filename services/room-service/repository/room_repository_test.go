@@ -52,3 +52,27 @@ func TestFindDirectRoomQueryUsesBothMembers(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateWithMembersUsesRoomInsertAndMemberInsertQueries(t *testing.T) {
+	expectedRoomParts := []string{
+		"INSERT INTO rooms",
+		"RETURNING id, name, type, created_by, created_at",
+	}
+
+	for _, part := range expectedRoomParts {
+		if !strings.Contains(createRoomQuery, part) {
+			t.Fatalf("expected create room query to contain %q, got query: %s", part, createRoomQuery)
+		}
+	}
+
+	expectedMemberParts := []string{
+		"INSERT INTO room_members",
+		"ON CONFLICT (room_id, user_id) DO NOTHING",
+	}
+
+	for _, part := range expectedMemberParts {
+		if !strings.Contains(addRoomMemberQuery, part) {
+			t.Fatalf("expected add member query to contain %q, got query: %s", part, addRoomMemberQuery)
+		}
+	}
+}

@@ -63,7 +63,7 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	consumer, err := notificationkafka.NewConsumer(
 		cfg.Kafka.Brokers,
 		notificationkafka.MessageEventsTopic,
-		cfg.Kafka.ClientID+"-notification-service",
+		notificationkafka.NotificationConsumerGroupID,
 		roomClient,
 		notificationSvc,
 	)

@@ -27,9 +27,14 @@ func TestAddRoomMemberQueryUsesDoNothingOnConflict(t *testing.T) {
 
 func TestListRoomMembersQueryOrdersMembers(t *testing.T) {
 	expectedParts := []string{
-		"SELECT room_id, user_id, role, joined_at",
-		"WHERE room_id = $1",
-		"ORDER BY joined_at ASC, user_id ASC",
+		"SELECT",
+		"rm.room_id",
+		"rm.user_id",
+		"rm.role",
+		"rm.joined_at",
+		"FROM room_members rm",
+		"WHERE rm.room_id = $1",
+		"ORDER BY rm.joined_at ASC, rm.user_id ASC",
 	}
 
 	for _, part := range expectedParts {
@@ -49,6 +54,23 @@ func TestGetRoomMemberRoleQuerySelectsRole(t *testing.T) {
 	for _, part := range expectedParts {
 		if !strings.Contains(getRoomMemberRoleQuery, part) {
 			t.Fatalf("expected get role query to contain %q, got query: %s", part, getRoomMemberRoleQuery)
+		}
+	}
+}
+
+func TestListRoomMembersQueryJoinsUsers(t *testing.T) {
+	expectedParts := []string{
+		"FROM room_members rm",
+		"JOIN users u ON u.id = rm.user_id",
+		"u.username",
+		"COALESCE(u.display_name, '')",
+		"COALESCE(u.avatar_url, '')",
+		"ORDER BY rm.joined_at ASC, rm.user_id ASC",
+	}
+
+	for _, part := range expectedParts {
+		if !strings.Contains(listRoomMembersQuery, part) {
+			t.Fatalf("expected list room members query to contain %q, got query: %s", part, listRoomMembersQuery)
 		}
 	}
 }

@@ -75,6 +75,7 @@ func (h *ChatHandler) GetMessages(
 ) (*connect.Response[chatv1.GetMessagesResponse], error) {
 	result, err := h.service.GetMessages(ctx, chatservice.GetMessagesInput{
 		RoomID:   req.Msg.GetRoomId(),
+		UserID:   req.Msg.GetUserId(),
 		Limit:    int(req.Msg.GetLimit()),
 		BeforeID: req.Msg.GetBeforeId(),
 	})
@@ -98,6 +99,10 @@ func connectError(err error) error {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
+	if errors.Is(err, chatservice.ErrForbidden) {
+		return connect.NewError(connect.CodePermissionDenied, err)
+	}
+
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
@@ -119,6 +124,8 @@ func protoMessageTypeToDomain(messageType chatv1.MessageType) chatservice.Messag
 		return chatservice.MessageTypeImage
 	case chatv1.MessageType_MESSAGE_TYPE_SYSTEM:
 		return chatservice.MessageTypeSystem
+	case chatv1.MessageType_MESSAGE_TYPE_FILE:
+		return chatservice.MessageTypeFile
 	default:
 		return chatservice.MessageTypeText
 	}
@@ -130,6 +137,8 @@ func domainMessageTypeToProto(messageType chatservice.MessageType) chatv1.Messag
 		return chatv1.MessageType_MESSAGE_TYPE_IMAGE
 	case chatservice.MessageTypeSystem:
 		return chatv1.MessageType_MESSAGE_TYPE_SYSTEM
+	case chatservice.MessageTypeFile:
+		return chatv1.MessageType_MESSAGE_TYPE_FILE
 	default:
 		return chatv1.MessageType_MESSAGE_TYPE_TEXT
 	}
@@ -141,11 +150,14 @@ func domainMessageToProto(msg *chatservice.Message) *chatv1.Message {
 	}
 
 	return &chatv1.Message{
-		Id:        msg.ID,
-		RoomId:    msg.RoomID,
-		SenderId:  msg.SenderID,
-		Content:   msg.Content,
-		Type:      domainMessageTypeToProto(msg.Type),
-		CreatedAt: timestamppb.New(msg.CreatedAt),
+		Id:                msg.ID,
+		RoomId:            msg.RoomID,
+		SenderId:          msg.SenderID,
+		Content:           msg.Content,
+		Type:              domainMessageTypeToProto(msg.Type),
+		CreatedAt:         timestamppb.New(msg.CreatedAt),
+		SenderUsername:    msg.SenderUsername,
+		SenderDisplayName: msg.SenderDisplayName,
+		SenderAvatarUrl:   msg.SenderAvatarURL,
 	}
 }

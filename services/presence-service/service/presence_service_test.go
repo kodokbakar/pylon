@@ -8,27 +8,27 @@ import (
 )
 
 type fakePresenceRepository struct {
-	setOnlineFunc       func(ctx context.Context, userID string) error
-	setOfflineFunc      func(ctx context.Context, userID string) error
+	setOnlineFunc       func(ctx context.Context, userID, roomID string) error
+	setOfflineFunc      func(ctx context.Context, userID, roomID string) error
 	setTypingFunc       func(ctx context.Context, roomID, userID string) error
 	getPresenceFunc     func(ctx context.Context, userID string) (*Presence, error)
 	getRoomPresenceFunc func(ctx context.Context, roomID string) ([]Presence, error)
 }
 
-func (r *fakePresenceRepository) SetOnline(ctx context.Context, userID string) error {
+func (r *fakePresenceRepository) SetOnline(ctx context.Context, userID, roomID string) error {
 	if r.setOnlineFunc == nil {
 		return errors.New("set online func is not configured")
 	}
 
-	return r.setOnlineFunc(ctx, userID)
+	return r.setOnlineFunc(ctx, userID, roomID)
 }
 
-func (r *fakePresenceRepository) SetOffline(ctx context.Context, userID string) error {
+func (r *fakePresenceRepository) SetOffline(ctx context.Context, userID, roomID string) error {
 	if r.setOfflineFunc == nil {
 		return errors.New("set offline func is not configured")
 	}
 
-	return r.setOfflineFunc(ctx, userID)
+	return r.setOfflineFunc(ctx, userID, roomID)
 }
 
 func (r *fakePresenceRepository) SetTyping(ctx context.Context, roomID, userID string) error {
@@ -78,11 +78,15 @@ func TestSetOnlineCallsRepository(t *testing.T) {
 	called := false
 
 	svc, err := NewPresenceService(&fakePresenceRepository{
-		setOnlineFunc: func(ctx context.Context, userID string) error {
+		setOnlineFunc: func(ctx context.Context, userID, roomID string) error {
 			called = true
 
 			if userID != "user-1" {
 				t.Fatalf("expected user-1, got %q", userID)
+			}
+
+			if roomID != "room-1" {
+				t.Fatalf("expected room-1, got %q", roomID)
 			}
 
 			return nil
@@ -92,8 +96,10 @@ func TestSetOnlineCallsRepository(t *testing.T) {
 		t.Fatalf("create presence service: %v", err)
 	}
 
-	err = svc.SetOnline(context.Background(), SetOnlineInput{UserID: " user-1 "})
-	if err != nil {
+	if err := svc.SetOnline(context.Background(), SetOnlineInput{
+		UserID: " user-1 ",
+		RoomID: " room-1 ",
+	}); err != nil {
 		t.Fatalf("set online: %v", err)
 	}
 
@@ -118,11 +124,15 @@ func TestSetOfflineCallsRepository(t *testing.T) {
 	called := false
 
 	svc, err := NewPresenceService(&fakePresenceRepository{
-		setOfflineFunc: func(ctx context.Context, userID string) error {
+		setOfflineFunc: func(ctx context.Context, userID, roomID string) error {
 			called = true
 
 			if userID != "user-1" {
 				t.Fatalf("expected user-1, got %q", userID)
+			}
+
+			if roomID != "room-1" {
+				t.Fatalf("expected room-1, got %q", roomID)
 			}
 
 			return nil
@@ -132,8 +142,10 @@ func TestSetOfflineCallsRepository(t *testing.T) {
 		t.Fatalf("create presence service: %v", err)
 	}
 
-	err = svc.SetOffline(context.Background(), SetOfflineInput{UserID: " user-1 "})
-	if err != nil {
+	if err := svc.SetOffline(context.Background(), SetOfflineInput{
+		UserID: " user-1 ",
+		RoomID: " room-1 ",
+	}); err != nil {
 		t.Fatalf("set offline: %v", err)
 	}
 
@@ -348,5 +360,95 @@ func TestStreamPresenceReturnsChannelAndClosesWhenContextIsCanceled(t *testing.T
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected events channel to close after context cancellation")
+	}
+}
+
+func TestStreamPresenceReceivesOnlineEvent(t *testing.T) {
+	svc, err := NewPresenceService(&fakePresenceRepository{
+		setOnlineFunc: func(ctx context.Context, userID, roomID string) error {
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("create presence service: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	events, err := svc.StreamPresence(ctx, StreamPresenceInput{
+		RoomID: "room-1",
+	})
+	if err != nil {
+		t.Fatalf("stream presence: %v", err)
+	}
+
+	err = svc.SetOnline(context.Background(), SetOnlineInput{
+		UserID: "user-1",
+		RoomID: "room-1",
+	})
+	if err != nil {
+		t.Fatalf("set online: %v", err)
+	}
+
+	select {
+	case event := <-events:
+		if event.UserID != "user-1" {
+			t.Fatalf("expected user-1, got %q", event.UserID)
+		}
+
+		if event.RoomID != "room-1" {
+			t.Fatalf("expected room-1, got %q", event.RoomID)
+		}
+
+		if event.Status != PresenceStatusOnline {
+			t.Fatalf("expected online status, got %q", event.Status)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected online event")
+	}
+}
+
+func TestStreamPresenceReceivesTypingEvent(t *testing.T) {
+	svc, err := NewPresenceService(&fakePresenceRepository{
+		getPresenceFunc: func(ctx context.Context, userID string) (*Presence, error) {
+			return &Presence{
+				UserID: userID,
+				Status: PresenceStatusOnline,
+			}, nil
+		},
+		setTypingFunc: func(ctx context.Context, roomID, userID string) error {
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("create presence service: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	events, err := svc.StreamPresence(ctx, StreamPresenceInput{
+		RoomID: "room-1",
+	})
+	if err != nil {
+		t.Fatalf("stream presence: %v", err)
+	}
+
+	err = svc.SetTyping(context.Background(), SetTypingInput{
+		UserID: "user-1",
+		RoomID: "room-1",
+	})
+	if err != nil {
+		t.Fatalf("set typing: %v", err)
+	}
+
+	select {
+	case event := <-events:
+		if event.Status != PresenceStatusTyping {
+			t.Fatalf("expected typing status, got %q", event.Status)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected typing event")
 	}
 }

@@ -18,6 +18,9 @@ import (
 
 var _ notificationv1connect.NotificationServiceHandler = (*NotificationHandler)(nil)
 
+// NotificationHandler is an internal Connect RPC handler.
+// Authentication and caller identity enforcement are handled by API Gateway;
+// do not expose this service directly to public clients without adding auth.
 type NotificationHandler struct {
 	service *notificationservice.NotificationService
 }
@@ -33,19 +36,20 @@ func NewNotificationHandler(service *notificationservice.NotificationService) (*
 func (h *NotificationHandler) SendNotification(
 	ctx context.Context,
 	req *connect.Request[notificationv1.SendNotificationRequest],
-) (*connect.Response[emptypb.Empty], error) {
-	_, err := h.service.SendNotification(ctx, notificationservice.SendNotificationInput{
-		UserID: req.Msg.GetUserId(),
-		Type:   protoNotificationTypeToDomain(req.Msg.GetType()),
-		Title:  req.Msg.GetTitle(),
-		Body:   req.Msg.GetBody(),
-		RoomID: req.Msg.GetRoomId(),
+) (*connect.Response[notificationv1.Notification], error) {
+	notification, err := h.service.SendNotification(ctx, notificationservice.SendNotificationInput{
+		UserID:    req.Msg.GetUserId(),
+		Type:      protoNotificationTypeToDomain(req.Msg.GetType()),
+		Title:     req.Msg.GetTitle(),
+		Body:      req.Msg.GetBody(),
+		RoomID:    req.Msg.GetRoomId(),
+		MessageID: req.Msg.GetMessageId(),
 	})
 	if err != nil {
 		return nil, connectError(err)
 	}
 
-	return connect.NewResponse(&emptypb.Empty{}), nil
+	return connect.NewResponse(domainNotificationToProto(notification)), nil
 }
 
 func (h *NotificationHandler) GetNotifications(
@@ -55,6 +59,7 @@ func (h *NotificationHandler) GetNotifications(
 	result, err := h.service.GetNotifications(ctx, notificationservice.GetNotificationsInput{
 		UserID:     req.Msg.GetUserId(),
 		Limit:      int(req.Msg.GetLimit()),
+		Offset:     int(req.Msg.GetOffset()),
 		UnreadOnly: req.Msg.GetUnreadOnly(),
 	})
 	if err != nil {
@@ -150,6 +155,7 @@ func domainNotificationToProto(notification *notificationservice.Notification) *
 		RoomId:    notification.RoomID,
 		Read:      notification.Read,
 		CreatedAt: timestampOrNil(notification.CreatedAt),
+		MessageId: notification.MessageID,
 	}
 }
 
