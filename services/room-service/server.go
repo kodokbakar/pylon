@@ -61,8 +61,9 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := roomv1connect.NewRoomServiceHandler(handler)
-	mux.Handle(path, internalmetrics.GRPCMiddleware("room-service", httpHandler))
-	mux.Handle(path, internaltracing.HTTPMiddleware("room-service", httpHandler))
+	wrappedHandler := internalmetrics.GRPCMiddleware("room-service", httpHandler)
+	wrappedHandler = internaltracing.HTTPMiddleware("room-service", wrappedHandler)
+	mux.Handle(path, wrappedHandler)
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 

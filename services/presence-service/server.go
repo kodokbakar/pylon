@@ -55,8 +55,9 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := presencev1connect.NewPresenceServiceHandler(handler)
-	mux.Handle(path, internalmetrics.GRPCMiddleware("presence-service", httpHandler))
-	mux.Handle(path, internaltracing.HTTPMiddleware("presence-service", httpHandler))
+	wrappedHandler := internalmetrics.GRPCMiddleware("presence-service", httpHandler)
+	wrappedHandler = internaltracing.HTTPMiddleware("presence-service", wrappedHandler)
+	mux.Handle(path, wrappedHandler)
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 

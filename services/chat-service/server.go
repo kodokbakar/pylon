@@ -77,8 +77,9 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := chatv1connect.NewChatServiceHandler(handler)
-	mux.Handle(path, internalmetrics.GRPCMiddleware("chat-service", httpHandler))
-	mux.Handle(path, internaltracing.HTTPMiddleware("chat-service", httpHandler))
+	wrappedHandler := internalmetrics.GRPCMiddleware("chat-service", httpHandler)
+	wrappedHandler = internaltracing.HTTPMiddleware("chat-service", wrappedHandler)
+	mux.Handle(path, wrappedHandler)
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 

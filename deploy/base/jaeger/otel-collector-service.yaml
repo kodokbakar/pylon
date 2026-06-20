@@ -20,3 +20,7 @@ spec:
       targetPort: otlp-http
       protocol: TCP
       name: otlp-http
+    - port: 13133
+      targetPort: health
+      protocol: TCP
+      name: health

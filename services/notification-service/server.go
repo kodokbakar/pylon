@@ -78,8 +78,9 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := notificationv1connect.NewNotificationServiceHandler(handler)
-	mux.Handle(path, internalmetrics.GRPCMiddleware("notification-service", httpHandler))
-	mux.Handle(path, internaltracing.HTTPMiddleware("notification-service", httpHandler))
+	wrappedHandler := internalmetrics.GRPCMiddleware("notification-service", httpHandler)
+	wrappedHandler = internaltracing.HTTPMiddleware("notification-service", wrappedHandler)
+	mux.Handle(path, wrappedHandler)
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 
