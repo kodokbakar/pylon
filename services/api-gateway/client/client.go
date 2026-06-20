@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/kodokbakar/pylon/internal/config"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 )
 
 type Clients struct {
@@ -69,7 +70,8 @@ func NewServiceClient(name, rawURL string) (*ServiceClient, error) {
 		Name:    name,
 		BaseURL: baseURL,
 		HTTPClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout:   10 * time.Second,
+			Transport: internaltracing.HTTPTransport(http.DefaultTransport),
 		},
 	}, nil
 }

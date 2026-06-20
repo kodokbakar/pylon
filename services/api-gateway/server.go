@@ -20,6 +20,7 @@ import (
 	internalmiddleware "github.com/kodokbakar/pylon/internal/middleware"
 	"github.com/kodokbakar/pylon/internal/observability"
 	"github.com/kodokbakar/pylon/internal/response"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	gatewayclient "github.com/kodokbakar/pylon/services/api-gateway/client"
 	gatewayhandler "github.com/kodokbakar/pylon/services/api-gateway/handler"
 	gatewaymiddleware "github.com/kodokbakar/pylon/services/api-gateway/middleware"
@@ -157,16 +158,10 @@ func newRateLimiter(cfg *config.Config) (*internalmiddleware.RateLimiter, *redis
 }
 
 func (s *Server) Handler() http.Handler {
-	handler := http.Handler(s.mux)
-
-	if s.rateLimiter != nil {
-		handler = s.rateLimiter.RateLimit(handler)
-	}
-
-	handler = internalmiddleware.CORSWithOrigins(handler, s.cfg.App.CORSOrigins)
+	handler := internalmetrics.HTTPMiddleware(s.mux)
+	handler = internaltracing.HTTPMiddleware("api-gateway", handler)
 	handler = internalmiddleware.Logger(handler)
 	handler = internalmiddleware.Recovery(handler)
-	handler = internalmetrics.HTTPMiddleware(handler)
 
 	return handler
 }

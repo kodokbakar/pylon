@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kodokbakar/pylon/internal/config"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	notificationservice "github.com/kodokbakar/pylon/services/notification-service"
 )
 
@@ -20,6 +21,19 @@ func main() {
 	}
 
 	cfg.GRPC.Port = notificationPort()
+
+	shutdownTracer, err := internaltracing.InitTracer(context.Background(), "notification-service", cfg.Tracing)
+	if err != nil {
+		log.Fatalf("init tracer: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := shutdownTracer(shutdownCtx); err != nil {
+			log.Printf("shutdown tracer: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

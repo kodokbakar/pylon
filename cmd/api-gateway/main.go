@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kodokbakar/pylon/internal/config"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	apigateway "github.com/kodokbakar/pylon/services/api-gateway"
 )
 
@@ -17,6 +18,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
+
+	shutdownTracer, err := internaltracing.InitTracer(context.Background(), "api-gateway", cfg.Tracing)
+	if err != nil {
+		log.Fatalf("init tracer: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := shutdownTracer(shutdownCtx); err != nil {
+			log.Printf("shutdown tracer: %v", err)
+		}
+	}()
 
 	server, err := apigateway.New(cfg)
 	if err != nil {

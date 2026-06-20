@@ -15,6 +15,7 @@ import (
 	"github.com/kodokbakar/pylon/internal/database"
 	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 	"github.com/kodokbakar/pylon/internal/observability"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	notificationhandler "github.com/kodokbakar/pylon/services/notification-service/handler"
 	notificationkafka "github.com/kodokbakar/pylon/services/notification-service/kafka"
 	notificationrepository "github.com/kodokbakar/pylon/services/notification-service/repository"
@@ -58,7 +59,8 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	}
 
 	roomClient := roomv1connect.NewRoomServiceClient(&http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   10 * time.Second,
+		Transport: internaltracing.HTTPTransport(http.DefaultTransport),
 	}, cfg.Services.RoomURL)
 
 	consumer, err := notificationkafka.NewConsumer(
@@ -77,6 +79,7 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 
 	path, httpHandler := notificationv1connect.NewNotificationServiceHandler(handler)
 	mux.Handle(path, internalmetrics.GRPCMiddleware("notification-service", httpHandler))
+	mux.Handle(path, internaltracing.HTTPMiddleware("notification-service", httpHandler))
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 

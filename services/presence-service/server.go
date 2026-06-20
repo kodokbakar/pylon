@@ -12,6 +12,7 @@ import (
 	"github.com/kodokbakar/pylon/internal/database"
 	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 	"github.com/kodokbakar/pylon/internal/observability"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	presencehandler "github.com/kodokbakar/pylon/services/presence-service/handler"
 	presencerepository "github.com/kodokbakar/pylon/services/presence-service/repository"
 	presencedomain "github.com/kodokbakar/pylon/services/presence-service/service"
@@ -55,6 +56,7 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 
 	path, httpHandler := presencev1connect.NewPresenceServiceHandler(handler)
 	mux.Handle(path, internalmetrics.GRPCMiddleware("presence-service", httpHandler))
+	mux.Handle(path, internaltracing.HTTPMiddleware("presence-service", httpHandler))
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 

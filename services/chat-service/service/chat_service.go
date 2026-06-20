@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/kodokbakar/pylon/internal/metrics"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 var ErrInvalidInput = errors.New("invalid input")
@@ -143,7 +146,19 @@ func WithMessageBroker(broker MessageBroker) ChatServiceOption {
 }
 
 func (s *ChatService) SendMessage(ctx context.Context, input SendMessageInput) (*Message, error) {
+	ctx, span := otel.Tracer("chat-service").Start(ctx, "ChatService.SendMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("room_id", strings.TrimSpace(input.RoomID)),
+		attribute.String("sender_id", strings.TrimSpace(input.SenderID)),
+		attribute.Int("content_length", len(strings.TrimSpace(input.Content))),
+		attribute.String("message_type", string(input.Type)),
+	)
+
 	if err := validateSendMessageInput(input); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -154,6 +169,8 @@ func (s *ChatService) SendMessage(ctx context.Context, input SendMessageInput) (
 	input.Type = normalizeMessageType(input.Type)
 
 	if err := s.ensureRoomMember(ctx, input.RoomID, input.SenderID); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
 
@@ -164,10 +181,15 @@ func (s *ChatService) SendMessage(ctx context.Context, input SendMessageInput) (
 		Type:     input.Type,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("create message: %w", err)
+		err = fmt.Errorf("create message: %w", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, err
 	}
 
 	if err := s.publisher.PublishMessageCreated(ctx, msg); err != nil {
+		span.RecordError(err)
+		span.SetAttributes(attribute.Bool("kafka.publish_failed", true))
 		log.Printf("publish message created event failed: message_id=%s room_id=%s sender_id=%s error=%v", msg.ID, msg.RoomID, msg.SenderID, err)
 	}
 
@@ -176,6 +198,8 @@ func (s *ChatService) SendMessage(ctx context.Context, input SendMessageInput) (
 	if dropped := s.broker.Publish(msg.RoomID, msg); dropped > 0 {
 		log.Printf("dropped %d chat stream messages for room %s", dropped, msg.RoomID)
 	}
+
+	span.SetAttributes(attribute.String("message_id", msg.ID))
 
 	return msg, nil
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kodokbakar/pylon/internal/config"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	chatservice "github.com/kodokbakar/pylon/services/chat-service"
 )
 
@@ -21,6 +22,19 @@ func main() {
 	if cfg.GRPC.Port == "" || cfg.GRPC.Port == "9000" {
 		cfg.GRPC.Port = "9001"
 	}
+
+	shutdownTracer, err := internaltracing.InitTracer(context.Background(), "chat-service", cfg.Tracing)
+	if err != nil {
+		log.Fatalf("init tracer: %v", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := shutdownTracer(shutdownCtx); err != nil {
+			log.Printf("shutdown tracer: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

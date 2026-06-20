@@ -11,6 +11,7 @@ import (
 	"github.com/segmentio/kafka-go"
 
 	"github.com/kodokbakar/pylon/internal/metrics"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	chatservice "github.com/kodokbakar/pylon/services/chat-service/service"
 )
 
@@ -125,16 +126,17 @@ func (p *Producer) PublishMessageCreated(ctx context.Context, msg *chatservice.M
 		return fmt.Errorf("marshal message created event: %w", err)
 	}
 
+	headers := []kafka.Header{
+		{Key: "event_type", Value: []byte(MessageCreatedEventType)},
+		{Key: "content_type", Value: []byte("application/json")},
+	}
+	headers = internaltracing.InjectKafkaHeaders(ctx, headers)
+
 	kafkaMessage := kafka.Message{
-		Key:   []byte(event.Data.RoomID),
-		Value: payload,
-		Time:  event.Timestamp,
-		Headers: []kafka.Header{
-			{
-				Key:   "event_type",
-				Value: []byte(MessageCreatedEventType),
-			},
-		},
+		Key:     []byte(event.Data.RoomID),
+		Value:   payload,
+		Time:    event.Timestamp,
+		Headers: headers,
 	}
 
 	topic := strings.TrimSpace(p.topic)

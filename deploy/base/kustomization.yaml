@@ -22,3 +22,8 @@ resources:
   - notification-service/deployment.yaml
   - notification-service/service.yaml
   - notification-service/hpa.yaml
+  - jaeger/jaeger-deployment.yaml
+  - jaeger/jaeger-service.yaml
+  - jaeger/otel-collector-configmap.yaml
+  - jaeger/otel-collector-deployment.yaml
+  - jaeger/otel-collector-service.yaml
