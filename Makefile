@@ -1,4 +1,4 @@
-.PHONY: dev proto lint test test-integration build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification help
+.PHONY: dev proto lint test test-integration test-load build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification help
 
 # Help
 help: ## Show this help
@@ -52,6 +52,9 @@ test-cover: ## Run tests with coverage
 
 test-integration: ## Run integration tests
 	go test -tags=integration -v ./tests/...
+
+test-load: ## Run HTTP load tests with clank-cli
+	tests/load/http/run.sh
 
 # Build
 build: ## Build all services

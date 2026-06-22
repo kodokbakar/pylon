@@ -118,8 +118,8 @@ jq '.error_rate' tests/load/results/list_rooms.json
 
 ## Notes
 
-* `tests/load/http/clank.yaml` is a shared reference config.
-* `tests/load/http/run.sh` uses CLI flags because token and room id are dynamic.
-* WebSocket load testing should use a WebSocket-capable tool such as k6 or websocat.
-* gRPC load testing should use a gRPC-capable tool such as ghz.
-* Do not commit fake result JSON files. Commit real baseline results only after running tests against a known environment.
+- `tests/load/http/run.sh` defines clank-cli flags inline because token and room id are dynamic.
+- There is no shared `clank.yaml` config file for now to avoid stale or misleading load-test settings.
+- WebSocket load testing should use a WebSocket-capable tool such as k6 or websocat.
+- gRPC load testing should use a gRPC-capable tool such as ghz.
+- Do not commit fake result JSON files. Commit real baseline results only after running tests against a known environment.
