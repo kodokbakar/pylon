@@ -223,6 +223,18 @@ make migrate-up     # Run database migrations
 make migrate-down   # Rollback migrations
 ```
 
+### Load Testing
+
+HTTP load tests are available under `tests/load`.
+
+```bash
+make test-load
+```
+
+The load test suite uses `clank-cli` for API Gateway HTTP endpoints and writes JSON results to `tests/load/results`.
+
+See `tests/load/README.md` for setup, environment variables, target metrics, and result analysis.
+
 ### Creating Migrations
 
 ```bash
