@@ -1,4 +1,4 @@
-.PHONY: dev proto lint test test-integration test-load build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification help
+.PHONY: dev proto lint test test-integration test-load build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification minikube-deploy minikube-status minikube-clean help
 
 # Help
 help: ## Show this help
@@ -96,6 +96,16 @@ docker-build-room: ## Build Room Service Docker image
 
 docker-build-notification: ## Build Notification Service Docker image
 	docker build -f cmd/notification-service/Dockerfile -t pylon/notification-service .
+
+# Minikube
+minikube-deploy: ## Build images and deploy Pylon to Minikube
+	scripts/minikube-deploy.sh
+
+minikube-status: ## Show Pylon Minikube resources
+	scripts/minikube-status.sh
+
+minikube-clean: ## Delete Pylon namespace and stop Minikube
+	scripts/minikube-clean.sh
 
 # Database
 migrate-up: ## Run database migrations

@@ -816,6 +816,23 @@ Important production note:
 
 `deploy/base/secrets.yaml` contains placeholder values only. Replace it with External Secrets, Sealed Secrets, or generated Kubernetes Secrets before production deployment.
 
+### Minikube
+
+Local Kubernetes deployment is available through:
+
+```bash
+make minikube-deploy
+```
+
+Useful commands:
+
+```bash
+make minikube-status
+make minikube-clean
+```
+
+See `deploy/minikube/README.md` for the full Minikube workflow.
+
 ---
 
 ## Architecture Decision Records

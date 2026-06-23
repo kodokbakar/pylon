@@ -67,7 +67,9 @@ func InitTracer(ctx context.Context, serviceName string, cfg config.TracingConfi
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
-			semconv.SchemaURL,
+			// Keep the custom resource schema URL empty to avoid conflicts with
+			// resource.Default() when OpenTelemetry dependency versions differ.
+			"",
 			semconv.ServiceName(serviceName),
 			semconv.ServiceVersion(serviceVersion),
 		),
