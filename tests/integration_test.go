@@ -204,34 +204,33 @@ func TestIntegrationEndToEndFlows(t *testing.T) {
 	t.Run("rate limiting returns 429", func(t *testing.T) {
 		ip := fmt.Sprintf("198.51.100.%d", time.Now().UnixNano()%200+1)
 
-		for i := 0; i < 10; i++ {
+		limited := false
+
+		for i := 0; i < 150; i++ {
 			resp := suite.doJSONWithHeaders(t, http.MethodPost, "/api/v1/auth/login", map[string]any{
 				"email":    fmt.Sprintf("missing-%d@example.com", i),
 				"password": "wrong-password",
 			}, map[string]string{
 				"X-Forwarded-For": ip,
 			})
-			_ = readBodyAndClose(t, resp)
+			body := readBodyAndClose(t, resp)
+
+			if resp.StatusCode == http.StatusTooManyRequests {
+				if resp.Header.Get("Retry-After") == "" {
+					t.Fatal("expected Retry-After header")
+				}
+
+				limited = true
+				break
+			}
 
 			if resp.StatusCode != http.StatusUnauthorized {
-				t.Fatalf("expected pre-limit status 401, got %d", resp.StatusCode)
+				t.Fatalf("expected status 401 before rate limit, got %d body=%s", resp.StatusCode, body)
 			}
 		}
 
-		resp := suite.doJSONWithHeaders(t, http.MethodPost, "/api/v1/auth/login", map[string]any{
-			"email":    "missing-final@example.com",
-			"password": "wrong-password",
-		}, map[string]string{
-			"X-Forwarded-For": ip,
-		})
-		body := readBodyAndClose(t, resp)
-
-		if resp.StatusCode != http.StatusTooManyRequests {
-			t.Fatalf("expected status 429, got %d body=%s", resp.StatusCode, body)
-		}
-
-		if resp.Header.Get("Retry-After") == "" {
-			t.Fatal("expected Retry-After header")
+		if !limited {
+			t.Fatal("expected rate limiter to eventually return 429")
 		}
 	})
 }

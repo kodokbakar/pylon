@@ -1,4 +1,4 @@
-.PHONY: dev proto lint test test-integration test-load build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification minikube-deploy minikube-status minikube-clean help
+.PHONY: dev proto lint test test-integration test-e2e test-load build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification minikube-deploy minikube-status minikube-clean help
 
 # Help
 help: ## Show this help
@@ -50,8 +50,11 @@ test-cover: ## Run tests with coverage
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 
-test-integration: ## Run integration tests
-	go test -tags=integration -v ./tests/...
+test-integration: ## Run integration tests with test infrastructure
+	scripts/test-integration.sh
+
+test-e2e: ## Run E2E tests against PYLON_E2E_BASE_URL
+	go test -tags=e2e -v ./tests/e2e/...
 
 test-load: ## Run HTTP load tests with clank-cli
 	tests/load/http/run.sh
