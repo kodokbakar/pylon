@@ -5,9 +5,11 @@ package tests
 import (
 	"bytes"
 	"context"
+	crand "crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"strings"
 	"testing"
@@ -202,7 +204,7 @@ func TestIntegrationEndToEndFlows(t *testing.T) {
 	})
 
 	t.Run("rate limiting returns 429", func(t *testing.T) {
-		ip := fmt.Sprintf("198.51.100.%d", time.Now().UnixNano()%200+1)
+		ip := uniqueRateLimitIP(t)
 
 		limited := false
 
@@ -233,6 +235,19 @@ func TestIntegrationEndToEndFlows(t *testing.T) {
 			t.Fatal("expected rate limiter to eventually return 429")
 		}
 	})
+}
+
+func uniqueRateLimitIP(t *testing.T) string {
+	t.Helper()
+
+	n, err := crand.Int(crand.Reader, big.NewInt(1<<16))
+	if err != nil {
+		t.Fatalf("generate rate limit ip: %v", err)
+	}
+
+	value := int(n.Int64())
+
+	return fmt.Sprintf("198.18.%d.%d", value/256, value%256)
 }
 
 func (s *integrationSuite) registerUser(t *testing.T, usernamePrefix string) testUser {
