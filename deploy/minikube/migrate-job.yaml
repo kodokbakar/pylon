@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pylon-migrate
+  namespace: pylon
+  labels:
+    app.kubernetes.io/name: pylon-migrate
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/part-of: pylon
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pylon-migrate
+        app.kubernetes.io/component: migration
+        app.kubernetes.io/part-of: pylon
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: migrate/migrate:v4.18.3
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-path=/migrations"
+            - "-database=$(DATABASE_URL)"
+            - "up"
+          envFrom:
+            - secretRef:
+                name: pylon-secrets
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+              readOnly: true
+      volumes:
+        - name: migrations
+          configMap:
+            name: pylon-migrations

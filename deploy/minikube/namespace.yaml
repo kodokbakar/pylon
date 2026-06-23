@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pylon
+  labels:
+    app.kubernetes.io/name: pylon
+    app.kubernetes.io/part-of: pylon

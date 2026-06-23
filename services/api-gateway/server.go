@@ -16,9 +16,11 @@ import (
 	chatv1connect "github.com/kodokbakar/pylon/gen/pylon/chat/v1/chatv1connect"
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
+	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 	internalmiddleware "github.com/kodokbakar/pylon/internal/middleware"
 	"github.com/kodokbakar/pylon/internal/observability"
 	"github.com/kodokbakar/pylon/internal/response"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	gatewayclient "github.com/kodokbakar/pylon/services/api-gateway/client"
 	gatewayhandler "github.com/kodokbakar/pylon/services/api-gateway/handler"
 	gatewaymiddleware "github.com/kodokbakar/pylon/services/api-gateway/middleware"
@@ -156,16 +158,12 @@ func newRateLimiter(cfg *config.Config) (*internalmiddleware.RateLimiter, *redis
 }
 
 func (s *Server) Handler() http.Handler {
-	handler := http.Handler(s.mux)
-	if s.rateLimiter != nil {
-		handler = s.rateLimiter.RateLimit(handler)
-	}
+	handler := internalmetrics.HTTPMiddleware(s.mux)
+	handler = internaltracing.HTTPMiddleware("api-gateway", handler)
+	handler = internalmiddleware.Logger(handler)
+	handler = internalmiddleware.Recovery(handler)
 
-	return internalmiddleware.Recovery(
-		internalmiddleware.Logger(
-			internalmiddleware.CORSWithOrigins(handler, s.cfg.App.CORSOrigins),
-		),
-	)
+	return handler
 }
 
 func (s *Server) Start() error {

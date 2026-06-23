@@ -1,0 +1,100 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: pylon-config
+    namespace: pylon
+    behavior: merge
+    literals:
+      - APP_ENV=development
+      - APP_LOG_LEVEL=debug
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+secretGenerator:
+  - name: pylon-secrets
+    namespace: pylon
+    behavior: replace
+    literals:
+      - DATABASE_URL=postgres://pylon:pylon_dev@postgres-service:5432/pylon?sslmode=disable
+      - REDIS_URL=redis://redis-service:6379
+      - REDIS_PASSWORD=
+      - JWT_SECRET=minikube-dev-jwt-secret-change-me
+
+images:
+  - name: ghcr.io/kodokbakar/pylon/api-gateway
+    newName: pylon/api-gateway
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/chat-service
+    newName: pylon/chat-service
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/presence-service
+    newName: pylon/presence-service
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/room-service
+    newName: pylon/room-service
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/notification-service
+    newName: pylon/notification-service
+    newTag: latest
+
+replicas:
+  - name: api-gateway
+    count: 1
+  - name: chat-service
+    count: 1
+  - name: presence-service
+    count: 1
+  - name: room-service
+    count: 1
+  - name: notification-service
+    count: 1
+
+patches:
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: chat-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: presence-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: room-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Deployment
+      name: notification-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: IfNotPresent
+  - target:
+      kind: Service
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort

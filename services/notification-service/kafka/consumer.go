@@ -13,7 +13,12 @@ import (
 	kafkago "github.com/segmentio/kafka-go"
 
 	roomv1 "github.com/kodokbakar/pylon/gen/pylon/room/v1"
+	"github.com/kodokbakar/pylon/internal/metrics"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	notificationservice "github.com/kodokbakar/pylon/services/notification-service/service"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
@@ -58,6 +63,8 @@ type Consumer struct {
 	reader          messageReader
 	roomClient      RoomMembersClient
 	notificationSvc NotificationSender
+	topic           string
+	consumerGroup   string
 }
 
 func NewConsumer(
@@ -84,6 +91,8 @@ func NewConsumer(
 		reader:          kafkago.NewReader(readerConfig),
 		roomClient:      roomClient,
 		notificationSvc: notificationSvc,
+		topic:           readerConfig.Topic,
+		consumerGroup:   readerConfig.GroupID,
 	}, nil
 }
 
@@ -128,10 +137,14 @@ func (c *Consumer) Start(ctx context.Context) error {
 			continue
 		}
 
-		if err := c.HandleMessage(ctx, message); err != nil {
-			log.Printf("failed to handle message event: %v", err)
+		messageCtx := internaltracing.ExtractKafkaContext(ctx, message.Headers)
+
+		if err := c.HandleMessage(messageCtx, message); err != nil {
+			log.Printf("handle kafka message: %v", err)
 			continue
 		}
+
+		metrics.RecordKafkaMessageConsumed(c.metricTopic(), c.metricConsumerGroup())
 
 		if err := c.reader.CommitMessages(ctx, message); err != nil {
 			log.Printf("failed to commit message event: %v", err)
@@ -140,6 +153,15 @@ func (c *Consumer) Start(ctx context.Context) error {
 }
 
 func (c *Consumer) HandleMessage(ctx context.Context, message kafkago.Message) error {
+	ctx, span := otel.Tracer("notification-service").Start(ctx, "Kafka.HandleMessage")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("kafka.topic", message.Topic),
+		attribute.Int64("kafka.offset", message.Offset),
+		attribute.Int("kafka.partition", message.Partition),
+	)
+
 	if c == nil {
 		return fmt.Errorf("consumer is required")
 	}
@@ -154,6 +176,8 @@ func (c *Consumer) HandleMessage(ctx context.Context, message kafkago.Message) e
 
 	event, err := DecodeMessageCreatedEvent(message.Value)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -161,6 +185,8 @@ func (c *Consumer) HandleMessage(ctx context.Context, message kafkago.Message) e
 		RoomId: event.Data.RoomID,
 	}))
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("get room members: %w", err)
 	}
 
@@ -184,6 +210,32 @@ func (c *Consumer) Close() error {
 	}
 
 	return nil
+}
+
+func (c *Consumer) metricTopic() string {
+	if c == nil {
+		return MessageEventsTopic
+	}
+
+	topic := strings.TrimSpace(c.topic)
+	if topic == "" {
+		return MessageEventsTopic
+	}
+
+	return topic
+}
+
+func (c *Consumer) metricConsumerGroup() string {
+	if c == nil {
+		return NotificationConsumerGroupID
+	}
+
+	consumerGroup := strings.TrimSpace(c.consumerGroup)
+	if consumerGroup == "" {
+		return NotificationConsumerGroupID
+	}
+
+	return consumerGroup
 }
 
 func DecodeMessageCreatedEvent(payload []byte) (*MessageCreatedEvent, error) {

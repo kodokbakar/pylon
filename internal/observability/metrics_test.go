@@ -5,17 +5,27 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 )
 
 func TestMetricsHandlerReturnsPrometheusMetrics(t *testing.T) {
-	InitMetrics()
+	internalmetrics.ObserveHTTPRequest("GET", "/health", http.StatusOK, 10*time.Millisecond)
+	internalmetrics.IncHTTPRequestsInFlight()
+	internalmetrics.DecHTTPRequestsInFlight()
 
-	httpRequestsTotal.WithLabelValues("GET", "/health", "200").Inc()
-	httpRequestDuration.WithLabelValues("GET", "/health", "200").Observe(0.01)
-	grpcRequestsTotal.WithLabelValues("chat", "SendMessage", "ok").Inc()
-	grpcRequestDuration.WithLabelValues("chat", "SendMessage", "ok").Observe(0.01)
-	kafkaMessagesTotal.WithLabelValues("message-events", "message.created", "ok").Inc()
-	wsConnectionsActive.Set(1)
+	internalmetrics.ObserveGRPCRequest("chat-service", "SendMessage", http.StatusOK, 10*time.Millisecond)
+
+	internalmetrics.RecordKafkaMessagePublished("message-events")
+	internalmetrics.RecordKafkaMessageConsumed("message-events", "notification-consumer-group")
+	internalmetrics.ObserveKafkaPublish("message-events", 10*time.Millisecond)
+
+	internalmetrics.IncActiveConnections(internalmetrics.RoomTypeAll)
+	internalmetrics.DecActiveConnections(internalmetrics.RoomTypeAll)
+	internalmetrics.RecordMessageSent(internalmetrics.RoomTypeAll, "text")
+	internalmetrics.RecordRoomCreated()
+	internalmetrics.SetUsersOnline(1)
 
 	handler := MetricsHandler()
 
@@ -33,10 +43,16 @@ func TestMetricsHandlerReturnsPrometheusMetrics(t *testing.T) {
 	expectedMetrics := []string{
 		"pylon_http_requests_total",
 		"pylon_http_request_duration_seconds",
+		"pylon_http_requests_in_flight",
 		"pylon_grpc_requests_total",
 		"pylon_grpc_request_duration_seconds",
-		"pylon_kafka_messages_total",
-		"pylon_ws_connections_active",
+		"pylon_kafka_messages_published_total",
+		"pylon_kafka_messages_consumed_total",
+		"pylon_kafka_publish_duration_seconds",
+		"pylon_websocket_connections_active",
+		"pylon_messages_sent_total",
+		"pylon_rooms_created_total",
+		"pylon_users_online",
 	}
 
 	for _, metric := range expectedMetrics {

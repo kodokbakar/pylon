@@ -1,0 +1,131 @@
+{
+  "uid": "pylon-business-metrics",
+  "title": "Pylon Business Metrics",
+  "tags": ["pylon", "business"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Users Online",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pylon_users_online",
+          "legendFormat": "Users",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 2,
+      "title": "Rooms Created",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(pylon_rooms_created_total)",
+          "legendFormat": "Rooms",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 3,
+      "title": "Messages Sent",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(pylon_messages_sent_total)",
+          "legendFormat": "Messages",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 4,
+      "title": "Active Connections",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(pylon_websocket_connections_active)",
+          "legendFormat": "Connections",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 5,
+      "title": "Messages/sec by Type",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (message_type) (rate(pylon_messages_sent_total[5m]))",
+          "legendFormat": "{{message_type}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 6,
+      "title": "Messages/sec by Room Type",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (room_type) (rate(pylon_messages_sent_total[5m]))",
+          "legendFormat": "{{room_type}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 7,
+      "title": "WebSocket Connections by Room Type",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (room_type) (pylon_websocket_connections_active)",
+          "legendFormat": "{{room_type}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 8,
+      "title": "Rooms Created/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(pylon_rooms_created_total[5m])",
+          "legendFormat": "rooms/sec",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    }
+  ]
+}

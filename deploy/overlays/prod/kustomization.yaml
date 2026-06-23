@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: pylon-config
+    namespace: pylon
+    behavior: merge
+    literals:
+      - APP_ENV=production
+      - APP_LOG_LEVEL=info
+      - CORS_ORIGINS=https://pylon.example.com
+
+images:
+  - name: ghcr.io/kodokbakar/pylon/api-gateway
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/chat-service
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/presence-service
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/room-service
+    newTag: latest
+  - name: ghcr.io/kodokbakar/pylon/notification-service
+    newTag: latest
+
+replicas:
+  - name: api-gateway
+    count: 3
+  - name: chat-service
+    count: 3
+  - name: presence-service
+    count: 3
+  - name: room-service
+    count: 3
+  - name: notification-service
+    count: 3

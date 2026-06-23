@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  namespace: pylon
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: tracing
+    app.kubernetes.io/part-of: pylon
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: jaeger
+  ports:
+    - port: 16686
+      targetPort: ui
+      protocol: TCP
+      name: ui
+    - port: 4317
+      targetPort: otlp-grpc
+      protocol: TCP
+      name: otlp-grpc

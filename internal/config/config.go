@@ -18,6 +18,7 @@ type Config struct {
 	WebSocket WebSocketConfig
 	JWT       JWTConfig
 	Services  ServicesConfig
+	Tracing   TracingConfig
 }
 
 type JWTConfig struct {
@@ -31,6 +32,13 @@ type ServicesConfig struct {
 	PresenceURL     string
 	RoomURL         string
 	NotificationURL string
+}
+
+type TracingConfig struct {
+	Enabled           bool
+	CollectorEndpoint string
+	ServiceVersion    string
+	SampleRatio       float64
 }
 
 type AppConfig struct {
@@ -122,6 +130,16 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
+	tracingEnabled, err := getBool("OTEL_TRACING_ENABLED", true)
+	if err != nil {
+		return nil, err
+	}
+
+	tracingSampleRatio, err := getFloat("OTEL_TRACES_SAMPLE_RATIO", 1)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &Config{
 		App: AppConfig{
 			Env:         getString("APP_ENV", "development"),
@@ -164,6 +182,12 @@ func Load() (*Config, error) {
 			RoomURL:         getString("ROOM_SERVICE_URL", "http://localhost:9003"),
 			NotificationURL: getString("NOTIFICATION_SERVICE_URL", "http://localhost:9004"),
 		},
+		Tracing: TracingConfig{
+			Enabled:           tracingEnabled,
+			CollectorEndpoint: getString("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317"),
+			ServiceVersion:    getString("OTEL_SERVICE_VERSION", "1.0.0"),
+			SampleRatio:       tracingSampleRatio,
+		},
 	}
 
 	return cfg, nil
@@ -186,6 +210,20 @@ func getInt(key string, fallback int) (int, error) {
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
 		return 0, fmt.Errorf("parse %s as int: %w", key, err)
+	}
+
+	return parsed, nil
+}
+
+func getFloat(key string, fallback float64) (float64, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse %s as float: %w", key, err)
 	}
 
 	return parsed, nil

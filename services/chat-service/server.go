@@ -10,7 +10,9 @@ import (
 	chatv1connect "github.com/kodokbakar/pylon/gen/pylon/chat/v1/chatv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
 	"github.com/kodokbakar/pylon/internal/database"
+	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 	"github.com/kodokbakar/pylon/internal/observability"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	chathandler "github.com/kodokbakar/pylon/services/chat-service/handler"
 	chatkafka "github.com/kodokbakar/pylon/services/chat-service/kafka"
 	chatrepository "github.com/kodokbakar/pylon/services/chat-service/repository"
@@ -75,7 +77,9 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := chatv1connect.NewChatServiceHandler(handler)
-	mux.Handle(path, httpHandler)
+	wrappedHandler := internalmetrics.GRPCMiddleware("chat-service", httpHandler)
+	wrappedHandler = internaltracing.HTTPMiddleware("chat-service", wrappedHandler)
+	mux.Handle(path, wrappedHandler)
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 

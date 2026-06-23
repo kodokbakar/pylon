@@ -1,0 +1,152 @@
+{
+  "uid": "pylon-infrastructure",
+  "title": "Pylon Infrastructure",
+  "tags": ["pylon", "infrastructure"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "PostgreSQL Connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(pg_stat_activity_count)",
+          "legendFormat": "connections",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 2,
+      "title": "PostgreSQL Active Queries",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(pg_stat_activity_count{state=\"active\"})",
+          "legendFormat": "active",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 3,
+      "title": "PostgreSQL Query Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(pg_stat_database_blk_read_time[5m]) + rate(pg_stat_database_blk_write_time[5m]))",
+          "legendFormat": "query time",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 4,
+      "title": "Redis Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "redis_memory_used_bytes",
+          "legendFormat": "used bytes",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 5,
+      "title": "Redis Hit Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(redis_keyspace_hits_total[5m])) / (sum(rate(redis_keyspace_hits_total[5m])) + sum(rate(redis_keyspace_misses_total[5m])))",
+          "legendFormat": "hit rate",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 6,
+      "title": "Redis Connected Clients",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "redis_connected_clients",
+          "legendFormat": "clients",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 7,
+      "title": "Pod Restarts",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"pylon\"}[15m]))",
+          "legendFormat": "{{pod}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 8,
+      "title": "Pod Ready Status",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (pod) (kube_pod_status_ready{namespace=\"pylon\", condition=\"true\"})",
+          "legendFormat": "{{pod}}",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    },
+    {
+      "id": 9,
+      "title": "HPA Replicas",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (horizontalpodautoscaler) (kube_horizontalpodautoscaler_status_current_replicas{namespace=\"pylon\"})",
+          "legendFormat": "{{horizontalpodautoscaler}} current",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (horizontalpodautoscaler) (kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"pylon\"})",
+          "legendFormat": "{{horizontalpodautoscaler}} max",
+          "datasource": { "type": "prometheus", "uid": "Prometheus" }
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "Prometheus" }
+    }
+  ]
+}

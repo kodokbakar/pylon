@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/kodokbakar/pylon/internal/metrics"
 )
 
 var ErrInvalidInput = errors.New("invalid input")
@@ -171,6 +173,8 @@ func (s *RoomService) CreateRoom(ctx context.Context, input CreateRoomInput) (*R
 	if err != nil {
 		return nil, fmt.Errorf("create room with members: %w", err)
 	}
+
+	metrics.RecordRoomCreated()
 
 	return room, nil
 }

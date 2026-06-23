@@ -13,7 +13,9 @@ import (
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
 	"github.com/kodokbakar/pylon/internal/database"
+	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
 	"github.com/kodokbakar/pylon/internal/observability"
+	internaltracing "github.com/kodokbakar/pylon/internal/tracing"
 	notificationhandler "github.com/kodokbakar/pylon/services/notification-service/handler"
 	notificationkafka "github.com/kodokbakar/pylon/services/notification-service/kafka"
 	notificationrepository "github.com/kodokbakar/pylon/services/notification-service/repository"
@@ -57,7 +59,8 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	}
 
 	roomClient := roomv1connect.NewRoomServiceClient(&http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:   10 * time.Second,
+		Transport: internaltracing.HTTPTransport(http.DefaultTransport),
 	}, cfg.Services.RoomURL)
 
 	consumer, err := notificationkafka.NewConsumer(
@@ -75,7 +78,9 @@ func New(ctx context.Context, cfg *config.Config) (*Server, error) {
 	mux := http.NewServeMux()
 
 	path, httpHandler := notificationv1connect.NewNotificationServiceHandler(handler)
-	mux.Handle(path, httpHandler)
+	wrappedHandler := internalmetrics.GRPCMiddleware("notification-service", httpHandler)
+	wrappedHandler = internaltracing.HTTPMiddleware("notification-service", wrappedHandler)
+	mux.Handle(path, wrappedHandler)
 	mux.Handle("GET /metrics", observability.MetricsHandler())
 	mux.HandleFunc("GET /health", handleHealth)
 
@@ -120,7 +125,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 
 	if s.consumer != nil {
-		if err := s.consumer.Close(); err != nil && shutdownErr == nil {
+		if err := s.consumer.Close(); err != nil {
 			shutdownErr = fmt.Errorf("close kafka consumer: %w", err)
 		}
 	}
