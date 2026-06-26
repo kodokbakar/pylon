@@ -237,14 +237,23 @@ function statusToCode(status: number): ApiErrorCode {
   }
 }
 
+type RefreshTokenResponseWithRefreshExpiry = RefreshTokenResponse & {
+  refreshExpiresAt?: { seconds: bigint; nanos: number };
+};
+
 function refreshTokenResponseToResult(
   response: RefreshTokenResponse,
 ): RefreshResult {
+  const responseWithRefreshExpiry =
+    response as RefreshTokenResponseWithRefreshExpiry;
+
   return {
     token: response.accessToken,
     refresh_token: response.refreshToken,
     expires_at: timestampToISO(response.expiresAt),
-    refresh_expires_at: "",
+    refresh_expires_at: timestampToISO(
+      responseWithRefreshExpiry.refreshExpiresAt,
+    ),
   };
 }
 

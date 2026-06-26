@@ -36,7 +36,7 @@ describe("auth API", () => {
 
     expect(result).toEqual(authPayload);
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/auth/register",
+      "http://localhost:8080/api/v1/auth/register",
       expect.objectContaining({
         method: "POST",
         headers: {
@@ -65,9 +65,13 @@ describe("auth API", () => {
 
     expect(result.token).toBe("access-token");
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/auth/login",
+      "http://localhost:8080/api/v1/auth/login",
       expect.objectContaining({
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({
           email: "alice@example.com",
           password: "password123",
