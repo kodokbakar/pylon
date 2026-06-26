@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/kodokbakar/pylon/internal/database"
 )
 
-const demoPassword = "password123"
+const defaultDemoPassword = "password123"
 
 type demoUser struct {
 	Username    string
@@ -47,6 +48,11 @@ type seededRoom struct {
 type demoMessage struct {
 	Sender  string
 	Content string
+}
+
+type demoRoomMessages struct {
+	RoomName string
+	Messages []demoMessage
 }
 
 type insertedMessage struct {
@@ -112,58 +118,70 @@ var demoRooms = []demoRoom{
 	},
 }
 
-var demoMessages = map[string][]demoMessage{
-	"General": {
-		{Sender: "alice", Content: "Welcome to General! This room is for day-to-day project updates."},
-		{Sender: "bob", Content: "Morning everyone, I pushed the latest Docker fixes."},
-		{Sender: "charlie", Content: "Nice. I will check the API Gateway routes today."},
-		{Sender: "diana", Content: "Frontend can start testing auth and room list with this data."},
-		{Sender: "eve", Content: "I am checking notification behavior after messages are sent."},
-		{Sender: "alice", Content: "Reminder: keep logs clean and errors wrapped."},
-		{Sender: "bob", Content: "PostgreSQL and Redis look stable locally."},
-		{Sender: "charlie", Content: "Kafka is also up. Consumer lag is zero on my machine."},
-		{Sender: "diana", Content: "The UI looks much better when there is real message history."},
-		{Sender: "eve", Content: "I added a few notes for QA verification."},
-		{Sender: "alice", Content: "Great work. Let's keep the demo data predictable."},
-		{Sender: "bob", Content: "Agreed. Predictable seeds make debugging faster."},
+var demoMessages = []demoRoomMessages{
+	{
+		RoomName: "General",
+		Messages: []demoMessage{
+			{Sender: "alice", Content: "Welcome to General! This room is for day-to-day project updates."},
+			{Sender: "bob", Content: "Morning everyone, I pushed the latest Docker fixes."},
+			{Sender: "charlie", Content: "Nice. I will check the API Gateway routes today."},
+			{Sender: "diana", Content: "Frontend can start testing auth and room list with this data."},
+			{Sender: "eve", Content: "I am checking notification behavior after messages are sent."},
+			{Sender: "alice", Content: "Reminder: keep logs clean and errors wrapped."},
+			{Sender: "bob", Content: "PostgreSQL and Redis look stable locally."},
+			{Sender: "charlie", Content: "Kafka is also up. Consumer lag is zero on my machine."},
+			{Sender: "diana", Content: "The UI looks much better when there is real message history."},
+			{Sender: "eve", Content: "I added a few notes for QA verification."},
+			{Sender: "alice", Content: "Great work. Let's keep the demo data predictable."},
+			{Sender: "bob", Content: "Agreed. Predictable seeds make debugging faster."},
+		},
 	},
-	"Random": {
-		{Sender: "bob", Content: "Random room is officially open."},
-		{Sender: "diana", Content: "Important question: tabs or spaces?"},
-		{Sender: "charlie", Content: "The formatter already chose for us."},
-		{Sender: "eve", Content: "That is the safest answer."},
-		{Sender: "alice", Content: "I brought virtual coffee for everyone."},
-		{Sender: "bob", Content: "Virtual coffee accepted."},
-		{Sender: "diana", Content: "The demo chat should feel alive now."},
-		{Sender: "charlie", Content: "Someone should add a meme endpoint someday."},
-		{Sender: "eve", Content: "Only if it has tests."},
-		{Sender: "alice", Content: "Everything gets tests."},
+	{
+		RoomName: "Random",
+		Messages: []demoMessage{
+			{Sender: "bob", Content: "Random room is officially open."},
+			{Sender: "diana", Content: "Important question: tabs or spaces?"},
+			{Sender: "charlie", Content: "The formatter already chose for us."},
+			{Sender: "eve", Content: "That is the safest answer."},
+			{Sender: "alice", Content: "I brought virtual coffee for everyone."},
+			{Sender: "bob", Content: "Virtual coffee accepted."},
+			{Sender: "diana", Content: "The demo chat should feel alive now."},
+			{Sender: "charlie", Content: "Someone should add a meme endpoint someday."},
+			{Sender: "eve", Content: "Only if it has tests."},
+			{Sender: "alice", Content: "Everything gets tests."},
+		},
 	},
-	"Alice & Bob": {
-		{Sender: "alice", Content: "Hey Bob, can you review the room membership flow?"},
-		{Sender: "bob", Content: "Sure, I will check direct room behavior first."},
-		{Sender: "alice", Content: "Direct rooms should stay between exactly two users."},
-		{Sender: "bob", Content: "Makes sense. I will also check duplicate room prevention."},
-		{Sender: "alice", Content: "Thanks. The seed should help frontend test this conversation."},
-		{Sender: "bob", Content: "Yes, this is much better than empty state testing."},
-		{Sender: "alice", Content: "Ping me when you finish the review."},
-		{Sender: "bob", Content: "Will do."},
-		{Sender: "alice", Content: "Also check notification counts if you can."},
-		{Sender: "bob", Content: "On it."},
+	{
+		RoomName: "Alice & Bob",
+		Messages: []demoMessage{
+			{Sender: "alice", Content: "Hey Bob, can you review the room membership flow?"},
+			{Sender: "bob", Content: "Sure, I will check direct room behavior first."},
+			{Sender: "alice", Content: "Direct rooms should stay between exactly two users."},
+			{Sender: "bob", Content: "Makes sense. I will also check duplicate room prevention."},
+			{Sender: "alice", Content: "Thanks. The seed should help frontend test this conversation."},
+			{Sender: "bob", Content: "Yes, this is much better than empty state testing."},
+			{Sender: "alice", Content: "Ping me when you finish the review."},
+			{Sender: "bob", Content: "Will do."},
+			{Sender: "alice", Content: "Also check notification counts if you can."},
+			{Sender: "bob", Content: "On it."},
+		},
 	},
-	"Dev Team": {
-		{Sender: "alice", Content: "Dev Team room is for engineering notes."},
-		{Sender: "bob", Content: "Current focus: seed data and final polish."},
-		{Sender: "charlie", Content: "I will validate message history pagination."},
-		{Sender: "alice", Content: "Please also test room member listing."},
-		{Sender: "bob", Content: "The seeder should add owner and member roles correctly."},
-		{Sender: "charlie", Content: "Good. That will help test access control."},
-		{Sender: "alice", Content: "Messages use varied timestamps so sorting can be tested."},
-		{Sender: "bob", Content: "Nice detail."},
-		{Sender: "charlie", Content: "Notification examples should cover message and mention types."},
-		{Sender: "alice", Content: "Agreed. Keep it realistic but simple."},
-		{Sender: "bob", Content: "After this, frontend can test room list and message history quickly."},
-		{Sender: "charlie", Content: "Seeder accepted."},
+	{
+		RoomName: "Dev Team",
+		Messages: []demoMessage{
+			{Sender: "alice", Content: "Dev Team room is for engineering notes."},
+			{Sender: "bob", Content: "Current focus: seed data and final polish."},
+			{Sender: "charlie", Content: "I will validate message history pagination."},
+			{Sender: "alice", Content: "Please also test room member listing."},
+			{Sender: "bob", Content: "The seeder should add owner and member roles correctly."},
+			{Sender: "charlie", Content: "Good. That will help test access control."},
+			{Sender: "alice", Content: "Messages use varied timestamps so sorting can be tested."},
+			{Sender: "bob", Content: "Nice detail."},
+			{Sender: "charlie", Content: "Notification examples should cover message and mention types."},
+			{Sender: "alice", Content: "Agreed. Keep it realistic but simple."},
+			{Sender: "bob", Content: "After this, frontend can test room list and message history quickly."},
+			{Sender: "charlie", Content: "Seeder accepted."},
+		},
 	},
 }
 
@@ -188,7 +206,9 @@ func main() {
 	}
 	defer db.Close()
 
-	stats, err := seed(ctx, db)
+	seedPassword := getSeedPassword()
+
+	stats, err := seed(ctx, db, seedPassword)
 	if err != nil {
 		log.Fatalf("seed database: %v", err)
 	}
@@ -199,9 +219,19 @@ func main() {
 	fmt.Printf("room_members: %d inserted\n", stats.RoomMembersInserted)
 	fmt.Printf("messages: %d inserted\n", stats.MessagesInserted)
 	fmt.Printf("notifications: %d inserted\n", stats.NotificationsInserted)
+	fmt.Println("note: users and rooms are idempotent; messages and notifications are appended on each run.")
 }
 
-func seed(ctx context.Context, db *pgxpool.Pool) (*seedStats, error) {
+func getSeedPassword() string {
+	password := strings.TrimSpace(os.Getenv("SEED_PASSWORD"))
+	if password == "" {
+		return defaultDemoPassword
+	}
+
+	return password
+}
+
+func seed(ctx context.Context, db *pgxpool.Pool, seedPassword string) (*seedStats, error) {
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin seed transaction: %w", err)
@@ -216,7 +246,7 @@ func seed(ctx context.Context, db *pgxpool.Pool) (*seedStats, error) {
 
 	stats := &seedStats{}
 
-	users, err := seedUsers(ctx, tx, stats)
+	users, err := seedUsers(ctx, tx, stats, seedPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -244,8 +274,8 @@ func seed(ctx context.Context, db *pgxpool.Pool) (*seedStats, error) {
 	return stats, nil
 }
 
-func seedUsers(ctx context.Context, tx pgx.Tx, stats *seedStats) (map[string]seededUser, error) {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(demoPassword), bcrypt.DefaultCost)
+func seedUsers(ctx context.Context, tx pgx.Tx, stats *seedStats, seedPassword string) (map[string]seededUser, error) {
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(seedPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash demo password: %w", err)
 	}
@@ -412,8 +442,10 @@ func seedMessages(
 	inserted := make(map[string][]insertedMessage, len(demoMessages))
 	now := time.Now().UTC()
 
-	roomIndex := 0
-	for roomName, messages := range demoMessages {
+	for roomIndex, roomMessages := range demoMessages {
+		roomName := roomMessages.RoomName
+		messages := roomMessages.Messages
+
 		room, ok := rooms[roomName]
 		if !ok {
 			return nil, fmt.Errorf("message room %s not found", roomName)
@@ -427,7 +459,8 @@ func seedMessages(
 				return nil, fmt.Errorf("message sender %s not found", demo.Sender)
 			}
 
-			createdAt := now.Add(-time.Duration(24-roomIndex) * time.Hour).Add(time.Duration(i) * 9 * time.Minute)
+			roomOffsetHours := 24 - (roomIndex * 3)
+			createdAt := now.Add(-time.Duration(roomOffsetHours) * time.Hour).Add(time.Duration(i) * 9 * time.Minute)
 
 			var messageID string
 			if err := tx.QueryRow(ctx, `
@@ -447,8 +480,6 @@ func seedMessages(
 
 			stats.MessagesInserted++
 		}
-
-		roomIndex += 3
 	}
 
 	return inserted, nil
@@ -518,10 +549,15 @@ func seedNotifications(
 			return fmt.Errorf("notification room %s not found", demo.RoomName)
 		}
 
+		var messageID any
+		if demo.MessageID != "" {
+			messageID = demo.MessageID
+		}
+
 		if _, err := tx.Exec(ctx, `
-			INSERT INTO notifications (user_id, type, title, body, room_id, message_id, read, created_at)
-			VALUES ($1, $2, $3, $4, NULLIF($5, '')::uuid, NULLIF($6, '')::uuid, $7, $8)
-		`, user.ID, demo.Type, demo.Title, demo.Body, room.ID, demo.MessageID, demo.Read, demo.CreatedAt); err != nil {
+	INSERT INTO notifications (user_id, type, title, body, room_id, message_id, read, created_at)
+	VALUES ($1, $2, $3, $4, $5::uuid, $6::uuid, $7, $8)
+`, user.ID, demo.Type, demo.Title, demo.Body, room.ID, messageID, demo.Read, demo.CreatedAt); err != nil {
 			return fmt.Errorf("insert notification for %s: %w", demo.User, err)
 		}
 

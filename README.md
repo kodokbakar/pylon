@@ -185,11 +185,12 @@ This starts:
 make proto
 ```
 
-### Run Database Migrations
+### Run Database Migrations & Seed Demo Data
 
 ```bash
 export DATABASE_URL="postgres://pylon:pylon_dev@localhost:5433/pylon?sslmode=disable"
 make migrate-up
+make seed
 ```
 
 ### Run Services Locally
@@ -617,6 +618,8 @@ make build-notification # Build Notification Service
 make docker-build      # Build all service Docker images
 
 make migrate-up        # Run database migrations
+make seed              # Seed demo users, rooms, messages, and notifications
+
 make migrate-down      # Roll back one migration
 make migrate-create name=add_users # Create a new migration
 

@@ -110,10 +110,10 @@ minikube-status: ## Show Pylon Minikube resources
 minikube-clean: ## Delete Pylon namespace and stop Minikube
 	scripts/minikube-clean.sh
 
+# Database
 seed: ## Seed database with demo data
 	go run ./cmd/seed
 
-# Database
 migrate-up: ## Run database migrations
 	migrate -path migrations -database "$(DATABASE_URL)" up
 
