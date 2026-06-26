@@ -1,4 +1,4 @@
-.PHONY: dev proto lint test test-integration test-e2e test-load build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification minikube-deploy minikube-status minikube-clean help
+.PHONY: dev proto lint test test-integration test-e2e test-load build docker-build docker-build-gateway docker-build-chat docker-build-presence docker-build-room docker-build-notification minikube-deploy minikube-status minikube-clean seed help
 
 # Help
 help: ## Show this help
@@ -109,6 +109,9 @@ minikube-status: ## Show Pylon Minikube resources
 
 minikube-clean: ## Delete Pylon namespace and stop Minikube
 	scripts/minikube-clean.sh
+
+seed: ## Seed database with demo data
+	go run ./cmd/seed
 
 # Database
 migrate-up: ## Run database migrations
