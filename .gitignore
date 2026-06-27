@@ -52,3 +52,7 @@ coverage.html
 # Miscellaneous
 KANBAN.md
 AGENTS.md
+seed
+
+# Generated code
+src/gen/
