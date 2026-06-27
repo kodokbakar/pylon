@@ -111,13 +111,13 @@
             </p>
           </div>
 
-          <button
+          <a
             class="grid size-9 place-items-center border border-zinc-800 text-zinc-400 transition hover:border-lime-300 hover:text-lime-300"
-            type="button"
+            href="/?create=room"
             aria-label="Create room"
           >
             <Plus class="size-4" aria-hidden="true" />
-          </button>
+          </a>
         </div>
 
         <div class="border border-dashed border-zinc-800 p-5 text-center">
