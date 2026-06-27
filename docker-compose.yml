@@ -65,17 +65,24 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions",
+          "--bootstrap-server",
+          "localhost:9092",
+        ]
       interval: 10s
       timeout: 10s
-      retries: 5
+      retries: 10
 
   # Kafka UI (optional, for debugging)
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: pylon-kafka-ui
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "8085:8080"
     environment:
@@ -104,6 +111,133 @@ services:
       - "4317:4317"
       - "4318:4318"
       - "13133:13133"
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: chat
+    image: pylon-chat-service:local
+    container_name: pylon-chat-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    ports:
+      - "9001:9001"
+    environment:
+      APP_ENV: development
+      APP_PORT: "9001"
+      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      KAFKA_BROKERS: kafka:29092
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_TRACING_ENABLED: "true"
+
+  presence-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: presence
+    image: pylon-presence-service:local
+    container_name: pylon-presence-service
+    depends_on:
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    ports:
+      - "9002:9002"
+    environment:
+      APP_ENV: development
+      APP_PORT: "9002"
+      REDIS_URL: redis://redis:6379/0
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_TRACING_ENABLED: "true"
+
+  room-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: room
+    image: pylon-room-service:local
+    container_name: pylon-room-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    ports:
+      - "9003:9003"
+    environment:
+      APP_ENV: development
+      APP_PORT: "9003"
+      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_TRACING_ENABLED: "true"
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: notification
+    image: pylon-notification-service:local
+    container_name: pylon-notification-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    ports:
+      - "9004:9004"
+    environment:
+      APP_ENV: development
+      APP_PORT: "9004"
+      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      KAFKA_BROKERS: kafka:29092
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_TRACING_ENABLED: "true"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: gateway
+    image: pylon-api-gateway:local
+    container_name: pylon-api-gateway
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chat-service:
+        condition: service_started
+      presence-service:
+        condition: service_started
+      room-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: development
+      APP_PORT: "8080"
+      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: pylon-dev-secret-change-me
+      CHAT_SERVICE_URL: http://chat-service:9001
+      PRESENCE_SERVICE_URL: http://presence-service:9002
+      ROOM_SERVICE_URL: http://room-service:9003
+      NOTIFICATION_SERVICE_URL: http://notification-service:9004
+      OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
+      OTEL_TRACING_ENABLED: "true"
 
 volumes:
   postgres_data:
