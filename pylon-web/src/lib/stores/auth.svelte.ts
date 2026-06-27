@@ -11,8 +11,6 @@ import {
 
 export const authStorageKey = "pylon-auth";
 
-const tokenRefreshSkewMs = 30_000;
-
 export type AuthStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 export type AuthApi = {
@@ -57,6 +55,7 @@ export class AuthStore {
   private readonly api: AuthApi;
   private readonly storage: AuthStorage | null;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor(options: AuthStoreOptions = {}) {
     this.api = options.api ?? defaultAuthApi;
@@ -76,6 +75,20 @@ export class AuthStore {
       return;
     }
 
+    if (this.initPromise !== null) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.runInit();
+
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async runInit(): Promise<void> {
     this.initialized = true;
     this.isLoading = true;
     this.error = null;
@@ -262,19 +275,6 @@ export function isTokenExpired(
   return expiresAtMs <= Date.now();
 }
 
-export function shouldRefreshToken(
-  token: string | null,
-  fallbackExpiresAt: string | null = null,
-): boolean {
-  const expiresAtMs = getTokenExpiresAtMs(token, fallbackExpiresAt);
-
-  if (expiresAtMs === null) {
-    return true;
-  }
-
-  return expiresAtMs <= Date.now() + tokenRefreshSkewMs;
-}
-
 function getTokenExpiresAtMs(
   token: string | null,
   fallbackExpiresAt: string | null,
@@ -307,7 +307,12 @@ function decodeJwtExpiresAtMs(token: string | null): number | null {
   }
 
   try {
-    const decodedPayload = JSON.parse(decodeBase64Url(payload)) as {
+    const decoded = decodeBase64Url(payload);
+    if (decoded === null) {
+      return null;
+    }
+
+    const decodedPayload = JSON.parse(decoded) as {
       exp?: unknown;
     };
 
@@ -321,9 +326,9 @@ function decodeJwtExpiresAtMs(token: string | null): number | null {
   }
 }
 
-function decodeBase64Url(value: string): string {
+function decodeBase64Url(value: string): string | null {
   if (typeof atob !== "function") {
-    throw new Error("base64 decoder is not available");
+    return null;
   }
 
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
