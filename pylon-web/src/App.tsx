@@ -1,7 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import { HomePage } from './pages/HomePage'
-import { LoginPage } from './pages/LoginPage'
+import { LoginPage } from './pages/Login'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/Register'
 import { RoomPage } from './pages/RoomPage'

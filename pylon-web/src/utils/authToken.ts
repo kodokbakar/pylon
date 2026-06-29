@@ -12,6 +12,10 @@ export function setAuthToken(token: string) {
   window.localStorage.setItem(AUTH_TOKEN_KEY, token)
 }
 
+export function removeAuthToken() {
+  window.localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
 export function hasAuthToken() {
   return Boolean(getAuthToken())
 }
