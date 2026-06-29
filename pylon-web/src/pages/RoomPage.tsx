@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 
+import { RoomList } from '../components/room/RoomList'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 export function RoomPage() {
@@ -15,23 +16,30 @@ export function RoomPage() {
             className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
             to="/"
           >
-            ← Back to app
+            ← Back to rooms
           </Link>
         </header>
 
-        <section className="col-span-12 pt-12 lg:col-span-8 lg:pt-20">
-          <p className="mb-5 inline-flex border border-[var(--color-ink)] px-3 py-1 font-mono text-xs uppercase tracking-[0.26em]">
-            Protected room route
-          </p>
+        <div className="col-span-12 grid grid-cols-12 gap-x-4 pt-10 lg:pt-16">
+          <aside className="col-span-12 lg:col-span-4">
+            <RoomList />
+          </aside>
 
-          <h1 className="text-[clamp(3.8rem,13vw,9rem)] font-black uppercase leading-[0.86] tracking-[-0.08em]">
-            Room {id}
-          </h1>
+          <section className="col-span-12 mt-12 lg:col-span-8 lg:mt-0 lg:pl-6">
+            <p className="mb-5 inline-flex border border-[var(--color-ink)] px-3 py-1 font-mono text-xs uppercase tracking-[0.26em]">
+              Active room
+            </p>
 
-          <p className="mt-8 max-w-2xl border-t border-[var(--color-line)] pt-5 text-xl font-semibold leading-tight tracking-[-0.03em]">
-            `/rooms/:id` is now routed behind the same auth token guard as the main app.
-          </p>
-        </section>
+            <h1 className="text-[clamp(3.8rem,13vw,9rem)] font-black uppercase leading-[0.86] tracking-[-0.08em]">
+              Room {id}
+            </h1>
+
+            <p className="mt-8 max-w-2xl border-t border-[var(--color-line)] pt-5 text-xl font-semibold leading-tight tracking-[-0.03em]">
+              This chat view is ready for the next Sprint 2 message stream issue. The active room is
+              highlighted in the sidebar based on the current route.
+            </p>
+          </section>
+        </div>
       </section>
     </main>
   )
