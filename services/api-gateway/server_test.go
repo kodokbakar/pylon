@@ -97,6 +97,142 @@ func TestAuthEndpointIsReachable(t *testing.T) {
 	}
 }
 
+func TestConnectAuthEndpointIsReachable(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.auth.v1.AuthService/Login",
+		strings.NewReader(`{"email":"alice@example.com","password":"password123"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusNotFound {
+		t.Fatalf("expected connect auth login route to be registered, got %d", rec.Code)
+	}
+}
+
+func TestConnectRoomEndpointRequiresAuthentication(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.room.v1.RoomService/ListRooms",
+		strings.NewReader(`{"userId":"user-1"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestConnectRoomEndpointIsRegistered(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.room.v1.RoomService/ListRooms",
+		strings.NewReader(`{"userId":"ignored-client-user"}`),
+	)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-123", "test-secret"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusNotFound {
+		t.Fatalf("expected connect room list route to be registered, got %d", rec.Code)
+	}
+}
+
+func TestConnectRoomPreflightReturnsCORSHeaders(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodOptions, "/pylon.room.v1.RoomService/ListRooms", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	req.Header.Set("Access-Control-Request-Headers", "content-type,connect-protocol-version,authorization")
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", rec.Code)
+	}
+
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected localhost vite origin, got %q", got)
+	}
+
+	allowHeaders := rec.Header().Get("Access-Control-Allow-Headers")
+	if !strings.Contains(allowHeaders, "Authorization") {
+		t.Fatalf("expected authorization header to be allowed, got %q", allowHeaders)
+	}
+
+	if !strings.Contains(allowHeaders, "Connect-Protocol-Version") {
+		t.Fatalf("expected connect protocol header to be allowed, got %q", allowHeaders)
+	}
+}
+
+func TestConnectAuthPreflightReturnsCORSHeaders(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodOptions, "/pylon.auth.v1.AuthService/Login", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	req.Header.Set("Access-Control-Request-Headers", "content-type,connect-protocol-version")
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected status 204, got %d", rec.Code)
+	}
+
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected localhost vite origin, got %q", got)
+	}
+
+	allowHeaders := rec.Header().Get("Access-Control-Allow-Headers")
+	if !strings.Contains(allowHeaders, "Connect-Protocol-Version") {
+		t.Fatalf("expected connect protocol header to be allowed, got %q", allowHeaders)
+	}
+}
+
+func TestConnectAuthLoginResponseIncludesCORSHeaders(t *testing.T) {
+	server := newTestServer(t)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.auth.v1.AuthService/Login",
+		strings.NewReader(`{"email":"alice@example.com","password":"password123"}`),
+	)
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code == http.StatusNotFound {
+		t.Fatalf("expected connect auth login route to be registered, got %d", rec.Code)
+	}
+
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected localhost vite origin, got %q", got)
+	}
+}
+
 func TestWebSocketRejectsUnknownOrigin(t *testing.T) {
 	server := newTestServer(t)
 

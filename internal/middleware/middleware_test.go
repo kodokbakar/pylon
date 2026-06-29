@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -16,6 +17,15 @@ func TestCORSHandlesPreflight(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
+
+	allowHeaders := rec.Header().Get("Access-Control-Allow-Headers")
+	if !strings.Contains(allowHeaders, "Connect-Protocol-Version") {
+		t.Fatalf("expected connect protocol header to be allowed, got %q", allowHeaders)
+	}
+
+	if !strings.Contains(allowHeaders, "Connect-Timeout-Ms") {
+		t.Fatalf("expected connect timeout header to be allowed, got %q", allowHeaders)
+	}
 
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("expected status 204, got %d", rec.Code)
