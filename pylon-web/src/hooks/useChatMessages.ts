@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { ChatService, type ChatHistoryMessage } from '../api/chat'
-import { useWebSocketContext } from '../contexts/webSocketContext'
+import { useWebSocketContext } from '../context/webSocketContext'
 import { useAuth } from './useAuth'
+import { recordField, stringField } from '../utils/object'
 import type { WebSocketMessage } from '../lib/ws'
 
 export type ChatMessageStatus = 'sent' | 'sending' | 'error'
@@ -335,28 +336,4 @@ function newOptimisticMessageId() {
   }
 
   return `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
-
-function recordField(record: Record<string, unknown>, ...keys: string[]) {
-  const value = valueField(record, ...keys)
-  return isRecord(value) ? value : {}
-}
-
-function stringField(record: Record<string, unknown>, ...keys: string[]) {
-  const value = valueField(record, ...keys)
-  return typeof value === 'string' ? value.trim() : ''
-}
-
-function valueField(record: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    if (key in record) {
-      return record[key]
-    }
-  }
-
-  return undefined
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }

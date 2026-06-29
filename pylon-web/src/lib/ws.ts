@@ -1,3 +1,5 @@
+import { isRecord } from '../utils/object'
+
 export type WebSocketConnectionState =
   'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'error'
 
@@ -311,8 +313,4 @@ function normalizeOutgoingType(type: string) {
     default:
       return type
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }

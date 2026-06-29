@@ -1,6 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
-import { WebSocketProvider } from './contexts/WebSocketContext'
+import { WebSocketProvider } from './context/WebSocketContext'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/Login'
 import { NotFoundPage } from './pages/NotFoundPage'

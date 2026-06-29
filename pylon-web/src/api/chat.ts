@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from './config'
 import { apiFetch } from './fetch'
+import { isRecord, stringField, valueField } from '../utils/object'
 
 export type ChatHistoryMessage = {
   id: string
@@ -179,11 +180,6 @@ function booleanField(record: Record<string, unknown>, ...keys: string[]) {
   return typeof value === 'boolean' ? value : false
 }
 
-function stringField(record: Record<string, unknown>, ...keys: string[]) {
-  const value = valueField(record, ...keys)
-  return typeof value === 'string' ? value.trim() : ''
-}
-
 function numberField(record: Record<string, unknown>, ...keys: string[]) {
   const value = valueField(record, ...keys)
   if (typeof value === 'number') {
@@ -196,18 +192,4 @@ function numberField(record: Record<string, unknown>, ...keys: string[]) {
   }
 
   return 0
-}
-
-function valueField(record: Record<string, unknown>, ...keys: string[]) {
-  for (const key of keys) {
-    if (key in record) {
-      return record[key]
-    }
-  }
-
-  return undefined
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }

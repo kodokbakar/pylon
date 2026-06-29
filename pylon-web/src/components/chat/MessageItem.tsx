@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import type { ChatMessage } from '../../hooks/useChatMessages'
+import { getInitial } from '../../utils/format'
 
 type MessageItemProps = {
   message: ChatMessage
@@ -133,9 +134,4 @@ function isYesterday(date: Date, now: Date) {
     date.getMonth() === yesterday.getMonth() &&
     date.getDate() === yesterday.getDate()
   )
-}
-
-function getInitial(name: string) {
-  const trimmedName = name.trim()
-  return trimmedName[0]?.toUpperCase() ?? '?'
 }

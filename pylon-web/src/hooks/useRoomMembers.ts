@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { RoomService } from '../api/rooms'
 import type { RoomMember } from '../api/gen/pylon/room/v1/room_service_pb'
+import { getInitial } from '../utils/format'
 
 export type RoomMemberListItem = {
   id: string
@@ -70,13 +71,4 @@ function roleWeight(role: string) {
     default:
       return 2
   }
-}
-
-function getInitial(name: string) {
-  const trimmedName = name.trim()
-  if (!trimmedName) {
-    return '?'
-  }
-
-  return trimmedName[0]?.toUpperCase() ?? '?'
 }

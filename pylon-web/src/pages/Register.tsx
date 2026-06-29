@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AuthService } from '../api/auth'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { cleanBackendMessage } from '../utils/backendError'
+import { isRecord } from '../utils/object'
 
 type RegisterFormValues = {
   username: string
@@ -398,8 +399,4 @@ function normalizeBackendField(field: string): FieldName | null {
     default:
       return null
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
