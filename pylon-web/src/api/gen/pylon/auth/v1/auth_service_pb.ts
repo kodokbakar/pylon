@@ -3,15 +3,8 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import type {
-  BinaryReadOptions,
-  FieldList,
-  JsonReadOptions,
-  JsonValue,
-  PartialMessage,
-  PlainMessage,
-} from '@bufbuild/protobuf'
-import { Message, proto3 } from '@bufbuild/protobuf'
+import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
+import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
  * @generated from message pylon.auth.v1.RegisterRequest
@@ -20,48 +13,45 @@ export class RegisterRequest extends Message<RegisterRequest> {
   /**
    * @generated from field: string username = 1;
    */
-  username = ''
+  username = "";
 
   /**
    * @generated from field: string email = 2;
    */
-  email = ''
+  email = "";
 
   /**
    * @generated from field: string password = 3;
    */
-  password = ''
+  password = "";
 
   constructor(data?: PartialMessage<RegisterRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'pylon.auth.v1.RegisterRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pylon.auth.v1.RegisterRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'username', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'email', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'password', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-  ])
+    { no: 1, name: "username", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "password", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RegisterRequest {
-    return new RegisterRequest().fromBinary(bytes, options)
+    return new RegisterRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RegisterRequest {
-    return new RegisterRequest().fromJson(jsonValue, options)
+    return new RegisterRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RegisterRequest {
-    return new RegisterRequest().fromJsonString(jsonString, options)
+    return new RegisterRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: RegisterRequest | PlainMessage<RegisterRequest> | undefined,
-    b: RegisterRequest | PlainMessage<RegisterRequest> | undefined,
-  ): boolean {
-    return proto3.util.equals(RegisterRequest, a, b)
+  static equals(a: RegisterRequest | PlainMessage<RegisterRequest> | undefined, b: RegisterRequest | PlainMessage<RegisterRequest> | undefined): boolean {
+    return proto3.util.equals(RegisterRequest, a, b);
   }
 }
 
@@ -72,60 +62,57 @@ export class RegisterResponse extends Message<RegisterResponse> {
   /**
    * @generated from field: pylon.auth.v1.User user = 1;
    */
-  user?: User
+  user?: User;
 
   /**
    * @generated from field: string token = 2;
    */
-  token = ''
+  token = "";
 
   /**
    * @generated from field: string refresh_token = 3;
    */
-  refreshToken = ''
+  refreshToken = "";
 
   /**
    * @generated from field: string expires_at = 4;
    */
-  expiresAt = ''
+  expiresAt = "";
 
   /**
    * @generated from field: string refresh_expires_at = 5;
    */
-  refreshExpiresAt = ''
+  refreshExpiresAt = "";
 
   constructor(data?: PartialMessage<RegisterResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'pylon.auth.v1.RegisterResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pylon.auth.v1.RegisterResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'user', kind: 'message', T: User },
-    { no: 2, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'refresh_token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'expires_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'refresh_expires_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-  ])
+    { no: 1, name: "user", kind: "message", T: User },
+    { no: 2, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "refresh_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "refresh_expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RegisterResponse {
-    return new RegisterResponse().fromBinary(bytes, options)
+    return new RegisterResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RegisterResponse {
-    return new RegisterResponse().fromJson(jsonValue, options)
+    return new RegisterResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RegisterResponse {
-    return new RegisterResponse().fromJsonString(jsonString, options)
+    return new RegisterResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: RegisterResponse | PlainMessage<RegisterResponse> | undefined,
-    b: RegisterResponse | PlainMessage<RegisterResponse> | undefined,
-  ): boolean {
-    return proto3.util.equals(RegisterResponse, a, b)
+  static equals(a: RegisterResponse | PlainMessage<RegisterResponse> | undefined, b: RegisterResponse | PlainMessage<RegisterResponse> | undefined): boolean {
+    return proto3.util.equals(RegisterResponse, a, b);
   }
 }
 
@@ -136,42 +123,39 @@ export class LoginRequest extends Message<LoginRequest> {
   /**
    * @generated from field: string email = 1;
    */
-  email = ''
+  email = "";
 
   /**
    * @generated from field: string password = 2;
    */
-  password = ''
+  password = "";
 
   constructor(data?: PartialMessage<LoginRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'pylon.auth.v1.LoginRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pylon.auth.v1.LoginRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'email', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'password', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-  ])
+    { no: 1, name: "email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "password", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoginRequest {
-    return new LoginRequest().fromBinary(bytes, options)
+    return new LoginRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LoginRequest {
-    return new LoginRequest().fromJson(jsonValue, options)
+    return new LoginRequest().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LoginRequest {
-    return new LoginRequest().fromJsonString(jsonString, options)
+    return new LoginRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: LoginRequest | PlainMessage<LoginRequest> | undefined,
-    b: LoginRequest | PlainMessage<LoginRequest> | undefined,
-  ): boolean {
-    return proto3.util.equals(LoginRequest, a, b)
+  static equals(a: LoginRequest | PlainMessage<LoginRequest> | undefined, b: LoginRequest | PlainMessage<LoginRequest> | undefined): boolean {
+    return proto3.util.equals(LoginRequest, a, b);
   }
 }
 
@@ -182,60 +166,57 @@ export class LoginResponse extends Message<LoginResponse> {
   /**
    * @generated from field: pylon.auth.v1.User user = 1;
    */
-  user?: User
+  user?: User;
 
   /**
    * @generated from field: string token = 2;
    */
-  token = ''
+  token = "";
 
   /**
    * @generated from field: string refresh_token = 3;
    */
-  refreshToken = ''
+  refreshToken = "";
 
   /**
    * @generated from field: string expires_at = 4;
    */
-  expiresAt = ''
+  expiresAt = "";
 
   /**
    * @generated from field: string refresh_expires_at = 5;
    */
-  refreshExpiresAt = ''
+  refreshExpiresAt = "";
 
   constructor(data?: PartialMessage<LoginResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'pylon.auth.v1.LoginResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pylon.auth.v1.LoginResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'user', kind: 'message', T: User },
-    { no: 2, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'refresh_token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'expires_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'refresh_expires_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-  ])
+    { no: 1, name: "user", kind: "message", T: User },
+    { no: 2, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "refresh_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "refresh_expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoginResponse {
-    return new LoginResponse().fromBinary(bytes, options)
+    return new LoginResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LoginResponse {
-    return new LoginResponse().fromJson(jsonValue, options)
+    return new LoginResponse().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LoginResponse {
-    return new LoginResponse().fromJsonString(jsonString, options)
+    return new LoginResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: LoginResponse | PlainMessage<LoginResponse> | undefined,
-    b: LoginResponse | PlainMessage<LoginResponse> | undefined,
-  ): boolean {
-    return proto3.util.equals(LoginResponse, a, b)
+  static equals(a: LoginResponse | PlainMessage<LoginResponse> | undefined, b: LoginResponse | PlainMessage<LoginResponse> | undefined): boolean {
+    return proto3.util.equals(LoginResponse, a, b);
   }
 }
 
@@ -246,39 +227,33 @@ export class RefreshTokenRequest extends Message<RefreshTokenRequest> {
   /**
    * @generated from field: string refresh_token = 1;
    */
-  refreshToken = ''
+  refreshToken = "";
 
   constructor(data?: PartialMessage<RefreshTokenRequest>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'pylon.auth.v1.RefreshTokenRequest'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pylon.auth.v1.RefreshTokenRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'refresh_token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-  ])
+    { no: 1, name: "refresh_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshTokenRequest {
-    return new RefreshTokenRequest().fromBinary(bytes, options)
+    return new RefreshTokenRequest().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshTokenRequest {
-    return new RefreshTokenRequest().fromJson(jsonValue, options)
+    return new RefreshTokenRequest().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): RefreshTokenRequest {
-    return new RefreshTokenRequest().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshTokenRequest {
+    return new RefreshTokenRequest().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: RefreshTokenRequest | PlainMessage<RefreshTokenRequest> | undefined,
-    b: RefreshTokenRequest | PlainMessage<RefreshTokenRequest> | undefined,
-  ): boolean {
-    return proto3.util.equals(RefreshTokenRequest, a, b)
+  static equals(a: RefreshTokenRequest | PlainMessage<RefreshTokenRequest> | undefined, b: RefreshTokenRequest | PlainMessage<RefreshTokenRequest> | undefined): boolean {
+    return proto3.util.equals(RefreshTokenRequest, a, b);
   }
 }
 
@@ -289,57 +264,51 @@ export class RefreshTokenResponse extends Message<RefreshTokenResponse> {
   /**
    * @generated from field: string token = 1;
    */
-  token = ''
+  token = "";
 
   /**
    * @generated from field: string refresh_token = 2;
    */
-  refreshToken = ''
+  refreshToken = "";
 
   /**
    * @generated from field: string expires_at = 3;
    */
-  expiresAt = ''
+  expiresAt = "";
 
   /**
    * @generated from field: string refresh_expires_at = 4;
    */
-  refreshExpiresAt = ''
+  refreshExpiresAt = "";
 
   constructor(data?: PartialMessage<RefreshTokenResponse>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'pylon.auth.v1.RefreshTokenResponse'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pylon.auth.v1.RefreshTokenResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'refresh_token', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'expires_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'refresh_expires_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-  ])
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "refresh_token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "refresh_expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefreshTokenResponse {
-    return new RefreshTokenResponse().fromBinary(bytes, options)
+    return new RefreshTokenResponse().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefreshTokenResponse {
-    return new RefreshTokenResponse().fromJson(jsonValue, options)
+    return new RefreshTokenResponse().fromJson(jsonValue, options);
   }
 
-  static fromJsonString(
-    jsonString: string,
-    options?: Partial<JsonReadOptions>,
-  ): RefreshTokenResponse {
-    return new RefreshTokenResponse().fromJsonString(jsonString, options)
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefreshTokenResponse {
+    return new RefreshTokenResponse().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: RefreshTokenResponse | PlainMessage<RefreshTokenResponse> | undefined,
-    b: RefreshTokenResponse | PlainMessage<RefreshTokenResponse> | undefined,
-  ): boolean {
-    return proto3.util.equals(RefreshTokenResponse, a, b)
+  static equals(a: RefreshTokenResponse | PlainMessage<RefreshTokenResponse> | undefined, b: RefreshTokenResponse | PlainMessage<RefreshTokenResponse> | undefined): boolean {
+    return proto3.util.equals(RefreshTokenResponse, a, b);
   }
 }
 
@@ -350,65 +319,63 @@ export class User extends Message<User> {
   /**
    * @generated from field: string id = 1;
    */
-  id = ''
+  id = "";
 
   /**
    * @generated from field: string username = 2;
    */
-  username = ''
+  username = "";
 
   /**
    * @generated from field: string email = 3;
    */
-  email = ''
+  email = "";
 
   /**
    * @generated from field: string display_name = 4;
    */
-  displayName = ''
+  displayName = "";
 
   /**
    * @generated from field: string avatar_url = 5;
    */
-  avatarUrl = ''
+  avatarUrl = "";
 
   /**
    * @generated from field: string created_at = 6;
    */
-  createdAt = ''
+  createdAt = "";
 
   constructor(data?: PartialMessage<User>) {
-    super()
-    proto3.util.initPartial(data, this)
+    super();
+    proto3.util.initPartial(data, this);
   }
 
-  static readonly runtime: typeof proto3 = proto3
-  static readonly typeName = 'pylon.auth.v1.User'
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pylon.auth.v1.User";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: 'id', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: 'username', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: 'email', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: 'display_name', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: 'avatar_url', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: 'created_at', kind: 'scalar', T: 9 /* ScalarType.STRING */ },
-  ])
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "username", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "display_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "avatar_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): User {
-    return new User().fromBinary(bytes, options)
+    return new User().fromBinary(bytes, options);
   }
 
   static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): User {
-    return new User().fromJson(jsonValue, options)
+    return new User().fromJson(jsonValue, options);
   }
 
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): User {
-    return new User().fromJsonString(jsonString, options)
+    return new User().fromJsonString(jsonString, options);
   }
 
-  static equals(
-    a: User | PlainMessage<User> | undefined,
-    b: User | PlainMessage<User> | undefined,
-  ): boolean {
-    return proto3.util.equals(User, a, b)
+  static equals(a: User | PlainMessage<User> | undefined, b: User | PlainMessage<User> | undefined): boolean {
+    return proto3.util.equals(User, a, b);
   }
 }
+

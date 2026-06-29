@@ -3,27 +3,20 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import {
-  LoginRequest,
-  LoginResponse,
-  RefreshTokenRequest,
-  RefreshTokenResponse,
-  RegisterRequest,
-  RegisterResponse,
-} from './auth_service_pb.js'
-import { MethodKind } from '@bufbuild/protobuf'
+import { LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, RegisterRequest, RegisterResponse } from "./auth_service_pb.js";
+import { MethodKind } from "@bufbuild/protobuf";
 
 /**
  * @generated from service pylon.auth.v1.AuthService
  */
 export const AuthService = {
-  typeName: 'pylon.auth.v1.AuthService',
+  typeName: "pylon.auth.v1.AuthService",
   methods: {
     /**
      * @generated from rpc pylon.auth.v1.AuthService.Register
      */
     register: {
-      name: 'Register',
+      name: "Register",
       I: RegisterRequest,
       O: RegisterResponse,
       kind: MethodKind.Unary,
@@ -32,7 +25,7 @@ export const AuthService = {
      * @generated from rpc pylon.auth.v1.AuthService.Login
      */
     login: {
-      name: 'Login',
+      name: "Login",
       I: LoginRequest,
       O: LoginResponse,
       kind: MethodKind.Unary,
@@ -41,10 +34,11 @@ export const AuthService = {
      * @generated from rpc pylon.auth.v1.AuthService.RefreshToken
      */
     refreshToken: {
-      name: 'RefreshToken',
+      name: "RefreshToken",
       I: RefreshTokenRequest,
       O: RefreshTokenResponse,
       kind: MethodKind.Unary,
     },
-  },
-} as const
+  }
+} as const;
+

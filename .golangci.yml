@@ -11,6 +11,16 @@ linters:
     - ineffassign
     - staticcheck
     - unused
+  exclusions:
+    paths:
+      - ^pylon-web/node_modules/
+      - ^pylon-web/dist/
+
+formatters:
+  exclusions:
+    paths:
+      - ^pylon-web/node_modules/
+      - ^pylon-web/dist/
 
 issues:
   max-issues-per-linter: 0
