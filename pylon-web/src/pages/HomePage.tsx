@@ -1,6 +1,11 @@
 import { SignalBadge } from '../components/SignalBadge'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(
+  /\/+$/,
+  '',
+)
+
 const serviceSignals = [
   { label: 'API Gateway', value: '8080', status: 'online' },
   { label: 'Chat Service', value: '9001', status: 'ready' },
@@ -55,7 +60,7 @@ export function HomePage() {
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <a
                 className="group inline-flex items-center justify-between border-2 border-[var(--color-ink)] bg-[var(--color-ink)] px-5 py-4 font-mono text-xs uppercase tracking-[0.22em] text-[var(--color-paper)] transition-transform duration-200 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
-                href="http://localhost:8080/health"
+                href={`${apiBaseUrl}/health`}
               >
                 Check API health
                 <span className="ml-8 transition-transform duration-200 group-hover:translate-x-1">
@@ -65,7 +70,7 @@ export function HomePage() {
 
               <a
                 className="group inline-flex items-center justify-between border-2 border-[var(--color-ink)] px-5 py-4 font-mono text-xs uppercase tracking-[0.22em] transition-transform duration-200 hover:-translate-y-1 hover:bg-[var(--color-accent)] hover:text-[var(--color-paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
-                href="http://localhost:8080/metrics"
+                href={`${apiBaseUrl}/metrics`}
               >
                 Inspect metrics
                 <span className="ml-8 transition-transform duration-200 group-hover:translate-x-1">
