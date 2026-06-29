@@ -7,7 +7,7 @@ import { RoomItem } from './RoomItem'
 
 export function RoomList() {
   const navigate = useNavigate()
-  const { id: activeRoomId } = useParams<{ id: string }>()
+  const { roomId: activeRoomId } = useParams<{ roomId: string }>()
   const { rooms, isLoading, isError, error, refetch, missingUser } = useRooms()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 

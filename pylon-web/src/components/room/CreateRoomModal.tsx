@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent } from 'react'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { useNavigate } from 'react-router-dom'
 
@@ -40,6 +40,15 @@ export function CreateRoomModal({ isOpen, existingRoomNames, onClose }: CreateRo
     [existingRoomNames],
   )
 
+  const closeModal = useCallback(() => {
+    setName('')
+    setDescription('')
+    setNameError(null)
+    setSubmitError(null)
+    createRoom.reset()
+    onClose()
+  }, [createRoom, onClose])
+
   useEffect(() => {
     if (!isOpen) {
       return
@@ -73,19 +82,10 @@ export function CreateRoomModal({ isOpen, existingRoomNames, onClose }: CreateRo
       document.body.style.overflow = previousOverflow
       previouslyFocused?.focus()
     }
-  }, [isOpen])
+  }, [closeModal, isOpen])
 
   if (!isOpen) {
     return null
-  }
-
-  function closeModal() {
-    setName('')
-    setDescription('')
-    setNameError(null)
-    setSubmitError(null)
-    createRoom.reset()
-    onClose()
   }
 
   function handleNameChange(event: ChangeEvent<HTMLInputElement>) {

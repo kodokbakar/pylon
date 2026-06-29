@@ -4,8 +4,11 @@ import { createPromiseClient } from '@connectrpc/connect'
 import {
   CreateRoomRequest,
   type CreateRoomResponse,
+  GetRoomMembersRequest,
+  type GetRoomMembersResponse,
   GetRoomRequest,
   type GetRoomResponse,
+  LeaveRoomRequest,
   ListRoomsRequest,
   type ListRoomsResponse,
 } from './gen/pylon/room/v1/room_service_pb'
@@ -26,8 +29,20 @@ async function getRoom(input: PartialMessage<GetRoomRequest>): Promise<GetRoomRe
   return client.getRoom(input)
 }
 
+async function getRoomMembers(
+  input: PartialMessage<GetRoomMembersRequest>,
+): Promise<GetRoomMembersResponse> {
+  return client.getRoomMembers(input)
+}
+
+async function leaveRoom(input: PartialMessage<LeaveRoomRequest>): Promise<void> {
+  await client.leaveRoom(input)
+}
+
 export const RoomService = {
   createRoom,
   listRooms,
   getRoom,
+  getRoomMembers,
+  leaveRoom,
 }
