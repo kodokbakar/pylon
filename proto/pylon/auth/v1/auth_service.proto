@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package pylon.auth.v1;
+
+option go_package = "github.com/kodokbakar/pylon/gen/pylon/auth/v1;authv1";
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+}
+
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message RegisterResponse {
+  User user = 1;
+  string token = 2;
+  string refresh_token = 3;
+  string expires_at = 4;
+  string refresh_expires_at = 5;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  User user = 1;
+  string token = 2;
+  string refresh_token = 3;
+  string expires_at = 4;
+  string refresh_expires_at = 5;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string token = 1;
+  string refresh_token = 2;
+  string expires_at = 3;
+  string refresh_expires_at = 4;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string display_name = 4;
+  string avatar_url = 5;
+  string created_at = 6;
+}

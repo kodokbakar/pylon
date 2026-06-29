@@ -1,42 +1,83 @@
-# sv
+# Pylon Web
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+React frontend for Pylon.
 
-## Creating a project
+## Stack
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Bun
+- Vite
+- React
+- TypeScript
+- Tailwind CSS v4
+- ESLint
+- Prettier
 
-```sh
-# create a new project
-npx sv create my-app
+## Tailwind
+
+This project uses Tailwind CSS v4 with the official Vite plugin.
+
+Tailwind is wired through:
+
+- `@tailwindcss/vite` in `vite.config.ts`
+- `@import 'tailwindcss';` in `src/index.css`
+
+There is no `postcss.config.js` or `tailwind.config.js` because this setup intentionally uses the Tailwind v4 Vite flow.
+
+## Folder Structure
+
+```text
+src/
+  api/
+  components/
+  hooks/
+  pages/
+  types/
+  utils/
 ```
 
-To recreate this project with the same configuration:
+## Commands
 
-```sh
-# recreate this project
-bun x sv@0.16.1 create --template minimal --types ts --add vitest="usages:unit,component" tailwindcss="plugins:none" --install bun pylon-web
+```bash
+bun install
+bun run dev
+bun run lint
+bun run build
+bun run format:check
 ```
 
-## Developing
+## Environment
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```fish
+cp .env.example .env
 ```
 
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
+```text
+VITE_API_URL=http://localhost:8080
 ```
 
-You can preview the production build with `npm run preview`.
+## Verification
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Last verified with:
+
+```text
+bun: 1.3.14
+node: v22.22.3
+vite: 8.1.0
+```
+
+Checks:
+
+```bash
+bun install
+bun run lint
+bun run build
+bun run format:check
+bun run proto
+bun run dev -- --host 127.0.0.1 --port 5173
+```
+
+Expected dev server:
+
+```text
+http://127.0.0.1:5173/
+```

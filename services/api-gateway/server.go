@@ -13,6 +13,7 @@ import (
 	"github.com/kodokbakar/pylon/internal/database"
 	gatewayauth "github.com/kodokbakar/pylon/services/api-gateway/auth"
 
+	authv1connect "github.com/kodokbakar/pylon/gen/pylon/auth/v1/authv1connect"
 	chatv1connect "github.com/kodokbakar/pylon/gen/pylon/chat/v1/chatv1connect"
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
@@ -27,18 +28,19 @@ import (
 )
 
 type Server struct {
-	cfg              *config.Config
-	clients          *gatewayclient.Clients
-	mux              *http.ServeMux
-	httpServer       *http.Server
-	authDB           *pgxpool.Pool
-	redisClient      *redis.Client
-	authHandler      *gatewayhandler.AuthHandler
-	roomHandler      *gatewayhandler.RoomHandler
-	messageHandler   *gatewayhandler.MessageHandler
-	webSocketHandler *gatewayhandler.WebSocketHandler
-	authMiddleware   *gatewaymiddleware.AuthMiddleware
-	rateLimiter      *internalmiddleware.RateLimiter
+	cfg                *config.Config
+	clients            *gatewayclient.Clients
+	mux                *http.ServeMux
+	httpServer         *http.Server
+	authDB             *pgxpool.Pool
+	redisClient        *redis.Client
+	authHandler        *gatewayhandler.AuthHandler
+	authConnectHandler *gatewayhandler.AuthConnectHandler
+	roomHandler        *gatewayhandler.RoomHandler
+	messageHandler     *gatewayhandler.MessageHandler
+	webSocketHandler   *gatewayhandler.WebSocketHandler
+	authMiddleware     *gatewaymiddleware.AuthMiddleware
+	rateLimiter        *internalmiddleware.RateLimiter
 }
 
 func New(cfg *config.Config) (*Server, error) {
@@ -90,17 +92,18 @@ func New(cfg *config.Config) (*Server, error) {
 	}
 
 	server := &Server{
-		cfg:              cfg,
-		clients:          clients,
-		mux:              http.NewServeMux(),
-		authDB:           authDB,
-		redisClient:      redisClient,
-		authHandler:      gatewayhandler.NewAuthHandler(authService),
-		roomHandler:      gatewayhandler.NewRoomHandler(roomClient),
-		messageHandler:   gatewayhandler.NewMessageHandler(chatClient),
-		webSocketHandler: webSocketHandler,
-		authMiddleware:   authMiddleware,
-		rateLimiter:      rateLimiter,
+		cfg:                cfg,
+		clients:            clients,
+		mux:                http.NewServeMux(),
+		authDB:             authDB,
+		redisClient:        redisClient,
+		authHandler:        gatewayhandler.NewAuthHandler(authService),
+		authConnectHandler: gatewayhandler.NewAuthConnectHandler(authService),
+		roomHandler:        gatewayhandler.NewRoomHandler(roomClient),
+		messageHandler:     gatewayhandler.NewMessageHandler(chatClient),
+		webSocketHandler:   webSocketHandler,
+		authMiddleware:     authMiddleware,
+		rateLimiter:        rateLimiter,
 	}
 
 	server.registerRoutes()
@@ -198,6 +201,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.Handle("GET /metrics", observability.MetricsHandler())
+
+	authConnectPath, authConnectHandler := authv1connect.NewAuthServiceHandler(s.authConnectHandler)
+	s.mux.Handle(authConnectPath, authConnectHandler)
 
 	s.mux.HandleFunc("POST /api/v1/auth/register", s.authHandler.Register)
 	s.mux.HandleFunc("POST /api/v1/auth/login", s.authHandler.Login)
