@@ -286,10 +286,30 @@ function parseMessage(data: string): WebSocketMessage | null {
 }
 
 function normalizeOutgoingMessage(message: WebSocketMessage): WebSocketMessage {
-  return {
+  const outgoingMessage: WebSocketMessage = {
     ...message,
-    type: message.type === 'chat' ? 'message' : message.type,
+    type: normalizeOutgoingType(message.type),
     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
+  }
+
+  if (typeof outgoingMessage.roomId === 'string' && typeof outgoingMessage.room_id !== 'string') {
+    outgoingMessage.room_id = outgoingMessage.roomId
+  }
+
+  if (typeof outgoingMessage.msgType === 'string' && typeof outgoingMessage.msg_type !== 'string') {
+    outgoingMessage.msg_type = outgoingMessage.msgType
+  }
+
+  return outgoingMessage
+}
+
+function normalizeOutgoingType(type: string) {
+  switch (type) {
+    case 'chat':
+    case 'chat.message':
+      return 'message'
+    default:
+      return type
   }
 }
 

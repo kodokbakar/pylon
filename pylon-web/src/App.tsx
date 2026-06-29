@@ -5,8 +5,8 @@ import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/Login'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/Register'
+import { ChatPage } from './pages/ChatPage'
 import { RoomDetailPage } from './pages/RoomDetailPage'
-import { RoomPage } from './pages/RoomPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { PublicRoute } from './routes/PublicRoute'
 
@@ -37,7 +37,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/rooms/:roomId/chat',
-        element: <RoomPage />,
+        element: <ChatPage />,
       },
     ],
   },
