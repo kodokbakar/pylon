@@ -165,6 +165,7 @@ func (s *Server) Handler() http.Handler {
 	handler = internaltracing.HTTPMiddleware("api-gateway", handler)
 	handler = internalmiddleware.Logger(handler)
 	handler = internalmiddleware.Recovery(handler)
+	handler = internalmiddleware.CORSWithOrigins(handler, s.cfg.App.CORSOrigins)
 
 	return handler
 }

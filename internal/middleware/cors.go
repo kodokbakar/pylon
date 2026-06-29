@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+const (
+	corsAllowedMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+	corsAllowedHeaders = "Content-Type, Authorization, Connect-Protocol-Version, Connect-Timeout-Ms, X-Requested-With"
+)
+
 func CORS(next http.Handler) http.Handler {
 	return CORSWithOrigins(next, []string{"*"})
 }
@@ -25,8 +30,8 @@ func CORSWithOrigins(next http.Handler, allowedOrigins []string) http.Handler {
 		if allowedOrigin != "" {
 			headers.Set("Access-Control-Allow-Origin", allowedOrigin)
 		}
-		headers.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		headers.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		headers.Set("Access-Control-Allow-Methods", corsAllowedMethods)
+		headers.Set("Access-Control-Allow-Headers", corsAllowedHeaders)
 		headers.Set("Access-Control-Max-Age", "86400")
 
 		if allowedOrigin != "*" {
