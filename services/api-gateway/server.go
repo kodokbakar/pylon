@@ -37,6 +37,7 @@ type Server struct {
 	authHandler        *gatewayhandler.AuthHandler
 	authConnectHandler *gatewayhandler.AuthConnectHandler
 	roomHandler        *gatewayhandler.RoomHandler
+	roomConnectHandler *gatewayhandler.RoomConnectHandler
 	messageHandler     *gatewayhandler.MessageHandler
 	webSocketHandler   *gatewayhandler.WebSocketHandler
 	authMiddleware     *gatewaymiddleware.AuthMiddleware
@@ -67,6 +68,11 @@ func New(cfg *config.Config) (*Server, error) {
 		clients.Room.HTTPClient,
 		clients.Room.BaseURL,
 	)
+
+	roomConnectHandler, err := gatewayhandler.NewRoomConnectHandler(roomClient)
+	if err != nil {
+		return nil, fmt.Errorf("create room connect handler: %w", err)
+	}
 
 	webSocketHandler, err := gatewayhandler.NewWebSocketHandler(
 		cfg.WebSocket.MaxConnections,
@@ -100,6 +106,7 @@ func New(cfg *config.Config) (*Server, error) {
 		authHandler:        gatewayhandler.NewAuthHandler(authService),
 		authConnectHandler: gatewayhandler.NewAuthConnectHandler(authService),
 		roomHandler:        gatewayhandler.NewRoomHandler(roomClient),
+		roomConnectHandler: roomConnectHandler,
 		messageHandler:     gatewayhandler.NewMessageHandler(chatClient),
 		webSocketHandler:   webSocketHandler,
 		authMiddleware:     authMiddleware,
@@ -205,6 +212,9 @@ func (s *Server) registerRoutes() {
 
 	authConnectPath, authConnectHandler := authv1connect.NewAuthServiceHandler(s.authConnectHandler)
 	s.mux.Handle(authConnectPath, authConnectHandler)
+
+	roomConnectPath, roomConnectHandler := roomv1connect.NewRoomServiceHandler(s.roomConnectHandler)
+	s.mux.Handle(roomConnectPath, s.authMiddleware.RequireAuth(roomConnectHandler))
 
 	s.mux.HandleFunc("POST /api/v1/auth/register", s.authHandler.Register)
 	s.mux.HandleFunc("POST /api/v1/auth/login", s.authHandler.Login)

@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	chatv1 "github.com/kodokbakar/pylon/gen/pylon/chat/v1"
 	roomv1 "github.com/kodokbakar/pylon/gen/pylon/room/v1"
+	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	gatewaymiddleware "github.com/kodokbakar/pylon/services/api-gateway/middleware"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -20,10 +21,12 @@ import (
 const testJWTSecret = "test-secret"
 
 type fakeRoomClient struct {
-	createRoomFunc func(context.Context, *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error)
-	listRoomsFunc  func(context.Context, *connect.Request[roomv1.ListRoomsRequest]) (*connect.Response[roomv1.ListRoomsResponse], error)
-	joinRoomFunc   func(context.Context, *connect.Request[roomv1.JoinRoomRequest]) (*connect.Response[emptypb.Empty], error)
-	leaveRoomFunc  func(context.Context, *connect.Request[roomv1.LeaveRoomRequest]) (*connect.Response[emptypb.Empty], error)
+	createRoomFunc     func(context.Context, *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error)
+	getRoomFunc        func(context.Context, *connect.Request[roomv1.GetRoomRequest]) (*connect.Response[roomv1.GetRoomResponse], error)
+	listRoomsFunc      func(context.Context, *connect.Request[roomv1.ListRoomsRequest]) (*connect.Response[roomv1.ListRoomsResponse], error)
+	joinRoomFunc       func(context.Context, *connect.Request[roomv1.JoinRoomRequest]) (*connect.Response[emptypb.Empty], error)
+	leaveRoomFunc      func(context.Context, *connect.Request[roomv1.LeaveRoomRequest]) (*connect.Response[emptypb.Empty], error)
+	getRoomMembersFunc func(context.Context, *connect.Request[roomv1.GetRoomMembersRequest]) (*connect.Response[roomv1.GetRoomMembersResponse], error)
 }
 
 func (c fakeRoomClient) CreateRoom(
@@ -35,6 +38,28 @@ func (c fakeRoomClient) CreateRoom(
 	}
 
 	return connect.NewResponse(&roomv1.CreateRoomResponse{}), nil
+}
+
+func (c fakeRoomClient) GetRoom(
+	ctx context.Context,
+	req *connect.Request[roomv1.GetRoomRequest],
+) (*connect.Response[roomv1.GetRoomResponse], error) {
+	if c.getRoomFunc != nil {
+		return c.getRoomFunc(ctx, req)
+	}
+
+	return connect.NewResponse(&roomv1.GetRoomResponse{}), nil
+}
+
+func (c fakeRoomClient) GetRoomMembers(
+	ctx context.Context,
+	req *connect.Request[roomv1.GetRoomMembersRequest],
+) (*connect.Response[roomv1.GetRoomMembersResponse], error) {
+	if c.getRoomMembersFunc != nil {
+		return c.getRoomMembersFunc(ctx, req)
+	}
+
+	return connect.NewResponse(&roomv1.GetRoomMembersResponse{}), nil
 }
 
 func (c fakeRoomClient) ListRooms(
@@ -106,6 +131,81 @@ func TestRoomHandlerListRoomsForwardsAuthenticatedUserID(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+}
+
+func TestRoomConnectHandlerListRoomsUsesAuthenticatedUserID(t *testing.T) {
+	roomHandler, err := NewRoomConnectHandler(fakeRoomClient{
+		listRoomsFunc: func(ctx context.Context, req *connect.Request[roomv1.ListRoomsRequest]) (*connect.Response[roomv1.ListRoomsResponse], error) {
+			if req.Msg.GetUserId() != "user-1" {
+				t.Fatalf("expected authenticated user-1, got %q", req.Msg.GetUserId())
+			}
+
+			return connect.NewResponse(&roomv1.ListRoomsResponse{}), nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("create room connect handler: %v", err)
+	}
+
+	handler := requireAuth(t, roomv1connectHandler(t, roomHandler))
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.room.v1.RoomService/ListRooms",
+		strings.NewReader(`{"userId":"spoofed-user"}`),
+	)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRoomConnectHandlerCreateRoomUsesAuthenticatedCreatorID(t *testing.T) {
+	roomHandler, err := NewRoomConnectHandler(fakeRoomClient{
+		createRoomFunc: func(ctx context.Context, req *connect.Request[roomv1.CreateRoomRequest]) (*connect.Response[roomv1.CreateRoomResponse], error) {
+			if req.Msg.GetCreatorId() != "user-1" {
+				t.Fatalf("expected authenticated creator user-1, got %q", req.Msg.GetCreatorId())
+			}
+
+			if req.Msg.GetName() != "general" {
+				t.Fatalf("expected general, got %q", req.Msg.GetName())
+			}
+
+			return connect.NewResponse(&roomv1.CreateRoomResponse{
+				Room: &roomv1.Room{
+					Id:   "room-1",
+					Name: "general",
+				},
+			}), nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("create room connect handler: %v", err)
+	}
+
+	handler := requireAuth(t, roomv1connectHandler(t, roomHandler))
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.room.v1.RoomService/CreateRoom",
+		strings.NewReader(`{"name":"general","creatorId":"spoofed-user"}`),
+	)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -476,6 +576,17 @@ func requireAuth(t *testing.T, next http.Handler) http.Handler {
 	}
 
 	return middleware.RequireAuth(next)
+}
+
+func roomv1connectHandler(t *testing.T, roomHandler *RoomConnectHandler) http.Handler {
+	t.Helper()
+
+	path, handler := roomv1connect.NewRoomServiceHandler(roomHandler)
+	if path != "/pylon.room.v1.RoomService/" {
+		t.Fatalf("unexpected room connect path %q", path)
+	}
+
+	return handler
 }
 
 func testJWT(t *testing.T, userID string) string {
