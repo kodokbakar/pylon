@@ -1,12 +1,12 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
-import { ProtectedRoute } from './routes/ProtectedRoute'
-import { PublicRoute } from './routes/PublicRoute'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
-import { RegisterPage } from './pages/RegisterPage'
+import { RegisterPage } from './pages/Register'
 import { RoomPage } from './pages/RoomPage'
+import { ProtectedRoute } from './routes/ProtectedRoute'
+import { PublicRoute } from './routes/PublicRoute'
 
 const router = createBrowserRouter([
   {

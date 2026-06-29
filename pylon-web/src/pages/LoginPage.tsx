@@ -1,9 +1,16 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { setAuthToken } from '../utils/authToken'
 
+type LoginLocationState = {
+  registrationSuccess?: string
+}
+
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const locationState = location.state as LoginLocationState | null
+  const registrationSuccess = locationState?.registrationSuccess
 
   function handleDemoLogin() {
     setAuthToken('demo-auth-token')
@@ -31,6 +38,15 @@ export function LoginPage() {
           </div>
 
           <div className="col-span-12 mt-10 border-y-2 border-[var(--color-ink)] py-6 lg:col-span-5 lg:mt-0">
+            {registrationSuccess ? (
+              <div
+                className="mb-6 border-2 border-[var(--color-accent)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-accent)]"
+                role="status"
+              >
+                {registrationSuccess}
+              </div>
+            ) : null}
+
             <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
               Local routing checkpoint
             </p>
