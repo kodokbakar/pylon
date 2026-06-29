@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 import { SignalBadge } from '../components/SignalBadge'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
@@ -28,7 +30,7 @@ export function HomePage() {
             </p>
 
             <p className="col-span-12 mt-3 font-mono text-xs uppercase tracking-[0.24em] text-[var(--color-muted)] sm:col-span-7 sm:mt-0 sm:text-right">
-              React migration checkpoint 01
+              Protected app route
             </p>
           </div>
         </header>
@@ -52,8 +54,8 @@ export function HomePage() {
               </p>
 
               <p className="col-span-12 max-w-2xl text-base leading-7 text-[var(--color-muted)] sm:col-span-7">
-                This screen proves the new frontend stack is alive: Vite serves the app, React
-                renders the shell, TypeScript compiles strictly, and Tailwind utilities are active.
+                This protected route renders only when `auth_token` exists in localStorage. The
+                routing layer now owns login, register, app, room, and 404 navigation.
               </p>
             </div>
 
@@ -77,6 +79,16 @@ export function HomePage() {
                   ↗
                 </span>
               </a>
+
+              <Link
+                className="group inline-flex items-center justify-between border-2 border-[var(--color-ink)] px-5 py-4 font-mono text-xs uppercase tracking-[0.22em] transition-transform duration-200 hover:-translate-y-1 hover:bg-[var(--color-accent)] hover:text-[var(--color-paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+                to="/rooms/general"
+              >
+                Open demo room
+                <span className="ml-8 transition-transform duration-200 group-hover:translate-x-1">
+                  →
+                </span>
+              </Link>
             </div>
           </section>
 
