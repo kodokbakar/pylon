@@ -9,14 +9,20 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "proto": "buf generate ../proto --path ../proto/pylon/auth/v1/auth_service.proto --template buf.gen.yaml"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^1",
+    "@connectrpc/connect": "^1",
+    "@connectrpc/connect-web": "^1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
+    "@bufbuild/protoc-gen-es": "^1",
+    "@connectrpc/protoc-gen-connect-es": "^1",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^26.0.1",

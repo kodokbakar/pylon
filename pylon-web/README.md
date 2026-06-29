@@ -52,7 +52,7 @@ cp .env.example .env
 ```
 
 ```text
-VITE_API_BASE_URL=http://localhost:8080
+VITE_API_URL=http://localhost:8080
 ```
 
 ## Verification
@@ -72,6 +72,7 @@ bun install
 bun run lint
 bun run build
 bun run format:check
+bun run proto
 bun run dev -- --host 127.0.0.1 --port 5173
 ```
 

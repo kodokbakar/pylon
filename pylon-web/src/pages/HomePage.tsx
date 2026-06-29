@@ -1,12 +1,10 @@
 import { Link } from 'react-router-dom'
 
+import { getApiBaseUrl } from '../api/config'
 import { SignalBadge } from '../components/SignalBadge'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(
-  /\/+$/,
-  '',
-)
+const apiBaseUrl = getApiBaseUrl()
 
 const serviceSignals = [
   { label: 'API Gateway', value: '8080', status: 'online' },
