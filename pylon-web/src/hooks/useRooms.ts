@@ -15,12 +15,16 @@ export type RoomListItemData = {
 
 const ROOM_STALE_TIME_MS = 30_000
 
+export function roomsQueryKey(userId: string) {
+  return ['rooms', userId] as const
+}
+
 export function useRooms() {
   const { user, isAuthenticated } = useAuth()
   const userId = user?.id ?? ''
 
   const query = useQuery({
-    queryKey: ['rooms', userId],
+    queryKey: roomsQueryKey(userId),
     enabled: isAuthenticated && userId.length > 0,
     staleTime: ROOM_STALE_TIME_MS,
     queryFn: async () => {
@@ -39,18 +43,20 @@ export function useRooms() {
   }
 }
 
-function toRoomListItem(room: Room): RoomListItemData {
+export function toRoomListItem(room: Room): RoomListItemData {
+  const name = room.name.trim() || 'Untitled room'
+
   return {
     id: room.id,
-    name: room.name || 'Untitled room',
-    initial: getRoomInitial(room.name),
+    name,
+    initial: getRoomInitial(name),
     updatedAt: room.createdAt?.toDate().toISOString() ?? null,
     lastMessagePreview: null,
     unreadCount: 0,
   }
 }
 
-function sortRoomsByUpdatedAtDesc(left: RoomListItemData, right: RoomListItemData) {
+export function sortRoomsByUpdatedAtDesc(left: RoomListItemData, right: RoomListItemData) {
   return getTime(right.updatedAt) - getTime(left.updatedAt)
 }
 

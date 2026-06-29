@@ -2,6 +2,8 @@ import type { PartialMessage } from '@bufbuild/protobuf'
 import { createPromiseClient } from '@connectrpc/connect'
 
 import {
+  CreateRoomRequest,
+  type CreateRoomResponse,
   GetRoomRequest,
   type GetRoomResponse,
   ListRoomsRequest,
@@ -12,6 +14,10 @@ import { authenticatedTransport } from './transport'
 
 const client = createPromiseClient(RoomServiceDefinition, authenticatedTransport)
 
+async function createRoom(input: PartialMessage<CreateRoomRequest>): Promise<CreateRoomResponse> {
+  return client.createRoom(input)
+}
+
 async function listRooms(input: PartialMessage<ListRoomsRequest>): Promise<ListRoomsResponse> {
   return client.listRooms(input)
 }
@@ -21,6 +27,7 @@ async function getRoom(input: PartialMessage<GetRoomRequest>): Promise<GetRoomRe
 }
 
 export const RoomService = {
+  createRoom,
   listRooms,
   getRoom,
 }

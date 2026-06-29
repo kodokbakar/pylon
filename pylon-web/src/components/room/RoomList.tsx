@@ -1,19 +1,22 @@
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { useRooms } from '../../hooks/useRooms'
+import { CreateRoomModal } from './CreateRoomModal'
 import { RoomItem } from './RoomItem'
 
 export function RoomList() {
   const navigate = useNavigate()
   const { id: activeRoomId } = useParams<{ id: string }>()
   const { rooms, isLoading, isError, error, refetch, missingUser } = useRooms()
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   return (
     <section
       aria-labelledby="room-list-title"
       className="border-y-2 border-[var(--color-ink)] bg-[var(--color-paper)]"
     >
-      <div className="flex items-center justify-between border-b border-[var(--color-line)] px-3 py-4">
+      <div className="flex items-start justify-between gap-3 border-b border-[var(--color-line)] px-3 py-4">
         <div>
           <p className="font-mono text-[0.68rem] uppercase tracking-[0.24em] text-[var(--color-muted)]">
             Sidebar
@@ -26,9 +29,19 @@ export function RoomList() {
           </h2>
         </div>
 
-        <span className="border border-[var(--color-ink)] px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.16em]">
-          {rooms.length}
-        </span>
+        <div className="flex flex-col items-end gap-2">
+          <span className="border border-[var(--color-ink)] px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.16em]">
+            {rooms.length}
+          </span>
+
+          <button
+            className="border-2 border-[var(--color-ink)] px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] transition-transform duration-200 hover:-translate-y-1 hover:bg-[var(--color-accent)] hover:text-[var(--color-paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            Create room
+          </button>
+        </div>
       </div>
 
       {isLoading ? <RoomListSkeleton /> : null}
@@ -73,6 +86,12 @@ export function RoomList() {
           ))}
         </nav>
       ) : null}
+
+      <CreateRoomModal
+        existingRoomNames={rooms.map((room) => room.name)}
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </section>
   )
 }
