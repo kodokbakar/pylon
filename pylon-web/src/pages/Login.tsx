@@ -4,8 +4,10 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthService } from '../api/auth'
+import type { User } from '../api/gen/pylon/auth/v1/auth_service_pb'
 import { useAuth } from '../hooks/useAuth'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import type { StoredAuthUser } from '../utils/authToken'
 
 type LoginFormValues = {
   email: string
@@ -32,7 +34,7 @@ export function LoginPage() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { storeToken } = useAuth()
+  const { login } = useAuth()
   const locationState = location.state as LoginLocationState | null
   const registrationSuccess = locationState?.registrationSuccess
 
@@ -92,12 +94,20 @@ export function LoginPage() {
         password: values.password,
       })
 
-      if (response.token.trim() === '') {
-        setGlobalError('Login response did not include an access token.')
+      const token = response.token.trim()
+      const refreshToken = response.refreshToken.trim()
+
+      if (!token || !refreshToken) {
+        setGlobalError('Login response did not include a complete auth session.')
         return
       }
 
-      storeToken(response.token)
+      login({
+        token,
+        refreshToken,
+        user: toStoredAuthUser(response.user),
+      })
+
       navigate('/', { replace: true })
     } catch (error) {
       setGlobalError(mapLoginError(error))
@@ -293,6 +303,21 @@ function mapLoginError(error: unknown) {
   }
 
   return 'Login failed. Please try again.'
+}
+
+function toStoredAuthUser(user: User | undefined): StoredAuthUser | null {
+  if (!user) {
+    return null
+  }
+
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt,
+  }
 }
 
 function cleanBackendMessage(message: string) {

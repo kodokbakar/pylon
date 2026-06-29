@@ -52,8 +52,8 @@ export function HomePage() {
               </p>
 
               <p className="col-span-12 max-w-2xl text-base leading-7 text-[var(--color-muted)] sm:col-span-7">
-                This protected route renders only when `auth_token` exists in localStorage. The
-                routing layer now owns login, register, app, room, and 404 navigation.
+                This protected route renders only when the auth session exists. The auth layer now
+                owns token persistence, guarded routes, refresh, and API request authorization.
               </p>
             </div>
 

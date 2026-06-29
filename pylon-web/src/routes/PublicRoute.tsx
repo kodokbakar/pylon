@@ -1,9 +1,11 @@
 import { Navigate, Outlet } from 'react-router-dom'
 
-import { hasAuthToken } from '../utils/authToken'
+import { useAuth } from '../hooks/useAuth'
 
 export function PublicRoute() {
-  if (hasAuthToken()) {
+  const { isAuthenticated } = useAuth()
+
+  if (isAuthenticated) {
     return <Navigate to="/" replace />
   }
 

@@ -1,18 +1,13 @@
-import { useCallback } from 'react'
+import { useContext } from 'react'
 
-import { removeAuthToken, setAuthToken } from '../utils/authToken'
+import { AuthContext } from '../context/authContext'
 
 export function useAuth() {
-  const storeToken = useCallback((token: string) => {
-    setAuthToken(token)
-  }, [])
+  const context = useContext(AuthContext)
 
-  const clearToken = useCallback(() => {
-    removeAuthToken()
-  }, [])
-
-  return {
-    storeToken,
-    clearToken,
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider')
   }
+
+  return context
 }
