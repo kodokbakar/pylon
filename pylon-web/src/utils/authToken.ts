@@ -1,6 +1,6 @@
-export const AUTH_TOKEN_KEY = 'auth_token'
-export const REFRESH_TOKEN_KEY = 'refresh_token'
-export const AUTH_USER_KEY = 'auth_user'
+const AUTH_TOKEN_KEY = 'auth_token'
+const REFRESH_TOKEN_KEY = 'refresh_token'
+const AUTH_USER_KEY = 'auth_user'
 
 export type StoredAuthUser = {
   id: string
@@ -83,14 +83,6 @@ export function removeAuthSession() {
   window.localStorage.removeItem(AUTH_TOKEN_KEY)
   window.localStorage.removeItem(REFRESH_TOKEN_KEY)
   window.localStorage.removeItem(AUTH_USER_KEY)
-}
-
-export function removeAuthToken() {
-  removeAuthSession()
-}
-
-export function hasAuthToken() {
-  return Boolean(getAuthToken())
 }
 
 function isStoredAuthUser(value: unknown): value is StoredAuthUser {

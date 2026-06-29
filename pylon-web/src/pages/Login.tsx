@@ -7,6 +7,7 @@ import { AuthService } from '../api/auth'
 import type { User } from '../api/gen/pylon/auth/v1/auth_service_pb'
 import { useAuth } from '../hooks/useAuth'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { cleanBackendMessage } from '../utils/backendError'
 import type { StoredAuthUser } from '../utils/authToken'
 
 type LoginFormValues = {
@@ -318,8 +319,4 @@ function toStoredAuthUser(user: User | undefined): StoredAuthUser | null {
     avatarUrl: user.avatarUrl,
     createdAt: user.createdAt,
   }
-}
-
-function cleanBackendMessage(message: string) {
-  return message.replace(/^invalid input:\s*/i, '').trim()
 }

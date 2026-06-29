@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { AuthService } from '../api/auth'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { cleanBackendMessage } from '../utils/backendError'
 
 type RegisterFormValues = {
   username: string
@@ -397,10 +398,6 @@ function normalizeBackendField(field: string): FieldName | null {
     default:
       return null
   }
-}
-
-function cleanBackendMessage(message: string) {
-  return message.replace(/^invalid input:\s*/i, '').trim()
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

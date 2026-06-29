@@ -67,14 +67,6 @@ a {
   text-decoration: none;
 }
 
-.font-sans {
-  font-family: var(--font-sans);
-}
-
-.font-mono {
-  font-family: var(--font-mono);
-}
-
 #root {
   min-height: 100vh;
   animation: page-enter 520ms ease-out both;
