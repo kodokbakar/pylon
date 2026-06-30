@@ -10,7 +10,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "proto": "buf generate ../proto --path ../proto/pylon/auth/v1/auth_service.proto --path ../proto/pylon/room/v1/room_service.proto --template buf.gen.yaml"
+    "proto": "buf generate ../proto --path ../proto/pylon/auth/v1/auth_service.proto --path ../proto/pylon/room/v1/room_service.proto --path ../proto/pylon/presence/v1/presence_service.proto --template buf.gen.yaml"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1",

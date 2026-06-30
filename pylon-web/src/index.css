@@ -17,6 +17,10 @@
   background: var(--color-paper);
   font-synthesis: none;
   text-rendering: geometricPrecision;
+
+  --color-presence-online: #159947;
+  --color-presence-offline: #8f8a80;
+  --color-presence-typing: #ffb000;
 }
 
 * {

@@ -6,12 +6,15 @@ import { useLeaveRoom } from '../hooks/useLeaveRoom'
 import { useRoom } from '../hooks/useRoom'
 import { useRoomMembers } from '../hooks/useRoomMembers'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { StatusIndicator } from '../components/presence/StatusIndicator'
+import { formatPresenceStatus, getPresenceStatus, useRoomPresence } from '../hooks/useRoomPresence'
 
 export function RoomDetailPage() {
   const navigate = useNavigate()
   const { roomId } = useParams<{ roomId: string }>()
   const roomQuery = useRoom(roomId)
   const membersQuery = useRoomMembers(roomId)
+  const presence = useRoomPresence(roomId)
   const leaveRoom = useLeaveRoom(roomId)
 
   const roomName = roomQuery.room?.name.trim() || 'Room detail'
@@ -89,6 +92,7 @@ export function RoomDetailPage() {
                       value={formatDate(roomQuery.room.createdAt?.toDate())}
                     />
                     <RoomStat label="Room ID" value={roomQuery.room.id} />
+                    <RoomStat label="Online" value={String(presence.onlineCount)} />
                   </div>
                 </div>
 
@@ -151,42 +155,61 @@ export function RoomDetailPage() {
                     </p>
                   ) : (
                     <div className="divide-y divide-[var(--color-line)]">
-                      {membersQuery.members.map((member) => (
-                        <article
-                          className="grid grid-cols-[3rem_1fr_auto] gap-4 py-4"
-                          key={member.id}
-                        >
-                          <div className="flex size-12 items-center justify-center border-2 border-[var(--color-ink)] font-mono text-sm font-black uppercase">
-                            {member.avatarUrl ? (
-                              <img
-                                alt=""
-                                className="size-full object-cover"
-                                src={member.avatarUrl}
+                      {membersQuery.members.map((member) => {
+                        const memberStatus = getPresenceStatus(
+                          presence.presencesByUserId,
+                          member.id,
+                        )
+
+                        return (
+                          <article
+                            className="grid grid-cols-[3rem_1fr_auto] gap-4 py-4"
+                            key={member.id}
+                          >
+                            <div className="relative size-12">
+                              <div className="flex size-full items-center justify-center border-2 border-[var(--color-ink)] font-mono text-sm font-black uppercase">
+                                {member.avatarUrl ? (
+                                  <img
+                                    alt=""
+                                    className="size-full object-cover"
+                                    src={member.avatarUrl}
+                                  />
+                                ) : (
+                                  member.initial
+                                )}
+                              </div>
+
+                              <StatusIndicator
+                                className="absolute -bottom-1 -right-1 border-2 border-[var(--color-paper)] bg-[var(--color-paper)]"
+                                label={`${member.name} is ${formatPresenceStatus(memberStatus)}`}
+                                size="md"
+                                status={memberStatus}
                               />
-                            ) : (
-                              member.initial
-                            )}
-                          </div>
+                            </div>
 
-                          <div className="min-w-0">
-                            <p className="truncate text-base font-black uppercase tracking-[-0.03em]">
-                              {member.name}
-                            </p>
-                            <p className="mt-1 truncate font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">
-                              {member.username || member.id}
-                            </p>
-                          </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-black uppercase tracking-[-0.03em]">
+                                {member.name}
+                              </p>
+                              <p className="mt-1 truncate font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-muted)]">
+                                {member.username || member.id}
+                              </p>
+                            </div>
 
-                          <div className="text-right">
-                            <p className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                              {member.role}
-                            </p>
-                            <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--color-muted)]">
-                              {formatDateString(member.joinedAt)}
-                            </p>
-                          </div>
-                        </article>
-                      ))}
+                            <div className="text-right">
+                              <p className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-accent)]">
+                                {member.role}
+                              </p>
+                              <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                                {formatPresenceStatus(memberStatus)}
+                              </p>
+                              <p className="mt-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--color-muted)]">
+                                {formatDateString(member.joinedAt)}
+                              </p>
+                            </div>
+                          </article>
+                        )
+                      })}
                     </div>
                   )}
                 </section>
