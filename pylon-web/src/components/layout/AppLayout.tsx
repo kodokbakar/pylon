@@ -23,7 +23,7 @@ export function AppLayout() {
         onRoomSelect={sidebar.closeOnMobile}
       />
 
-      <div className="min-h-screen md:pl-[280px]">
+      <div className="min-h-screen min-w-0 overflow-x-hidden md:pl-[280px]">
         <header className="sticky top-0 z-30 flex items-center justify-between border-b-2 border-[var(--color-ink)] bg-[var(--color-paper)] px-4 py-3 md:hidden">
           <button
             aria-expanded={sidebar.isOpen}
@@ -40,7 +40,7 @@ export function AppLayout() {
           </p>
         </header>
 
-        <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
+        <main className="mx-auto min-h-screen w-full max-w-7xl min-w-0 px-5 py-8 sm:px-8 lg:px-10">
           <Outlet />
         </main>
       </div>

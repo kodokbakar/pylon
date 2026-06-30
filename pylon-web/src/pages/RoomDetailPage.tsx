@@ -7,6 +7,7 @@ import { useLeaveRoom } from '../hooks/useLeaveRoom'
 import { useRoom } from '../hooks/useRoom'
 import { useRoomMembers } from '../hooks/useRoomMembers'
 import { formatPresenceStatus, getPresenceStatus, useRoomPresence } from '../hooks/useRoomPresence'
+import { PageHeader } from '../components/layout/PageHeader'
 
 export function RoomDetailPage() {
   const navigate = useNavigate()
@@ -42,14 +43,7 @@ export function RoomDetailPage() {
 
   return (
     <section className="pt-8 lg:pt-14">
-      <header className="border-b border-[var(--color-line)] pb-4">
-        <Link
-          className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--color-muted)] hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
-          to="/"
-        >
-          ← Back to rooms
-        </Link>
-      </header>
+      <PageHeader backLabel="← Back to rooms" backTo="/" />
 
       <section className="pt-10 lg:pt-16">
         {isLoading ? <RoomDetailSkeleton /> : null}
