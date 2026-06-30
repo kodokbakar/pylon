@@ -6,7 +6,11 @@ import { CreateRoomModal } from './CreateRoomModal'
 import { RoomItem } from './RoomItem'
 import { useRoomPresence } from '../../hooks/useRoomPresence'
 
-export function RoomList() {
+type RoomListProps = {
+  onRoomSelect?: () => void
+}
+
+export function RoomList({ onRoomSelect }: RoomListProps) {
   const navigate = useNavigate()
   const { roomId: activeRoomId } = useParams<{ roomId: string }>()
   const { rooms, isLoading, isError, error, refetch, missingUser } = useRooms()
@@ -82,7 +86,10 @@ export function RoomList() {
               activeRoomId={activeRoomId}
               key={room.id}
               room={room}
-              onClick={() => navigate(`/rooms/${room.id}`)}
+              onClick={() => {
+                navigate(`/rooms/${room.id}/chat`)
+                onRoomSelect?.()
+              }}
             />
           ))}
         </nav>

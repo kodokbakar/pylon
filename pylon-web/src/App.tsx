@@ -11,6 +11,7 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 import { PublicRoute } from './routes/PublicRoute'
 import { PresenceProvider } from './context/PresenceContext'
 import type { PropsWithChildren } from 'react'
+import { AppLayout } from './components/layout/AppLayout'
 
 import { useAuth } from './hooks/useAuth'
 
@@ -32,16 +33,21 @@ const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        path: '/',
-        element: <HomePage />,
-      },
-      {
-        path: '/rooms/:roomId',
-        element: <RoomDetailPage />,
-      },
-      {
-        path: '/rooms/:roomId/chat',
-        element: <ChatPage />,
+        element: <AppLayout />,
+        children: [
+          {
+            path: '/',
+            element: <HomePage />,
+          },
+          {
+            path: '/rooms/:roomId',
+            element: <RoomDetailPage />,
+          },
+          {
+            path: '/rooms/:roomId/chat',
+            element: <ChatPage />,
+          },
+        ],
       },
     ],
   },
