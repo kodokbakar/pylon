@@ -1,183 +1,64 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 
-import { PresenceService } from '../api/presence'
-import {
-  PresenceStatus,
-  type PresenceEvent,
-} from '../api/gen/pylon/presence/v1/presence_service_pb'
+import type {
+  PresenceByUserId,
+  PresenceEntry,
+  RoomPresenceStatus,
+} from '../context/presenceContext'
 import { useAuth } from './useAuth'
+import { usePresence } from './usePresence'
+import { useStreamPresence } from './useStreamPresence'
 
-export type RoomPresenceStatus = 'online' | 'offline' | 'typing'
-
-export type RoomPresenceEntry = {
-  userId: string
-  roomId: string
-  status: RoomPresenceStatus
-  timestamp: string | null
-}
-
-export type PresenceByUserId = Record<string, RoomPresenceEntry>
-
-type StreamPresenceState = {
-  roomId: string
-  presencesByUserId: PresenceByUserId
-}
-
-const PRESENCE_STALE_TIME_MS = 10_000
-const TYPING_EXPIRY_MS = 3_000
+export type { PresenceByUserId, RoomPresenceStatus }
+export type RoomPresenceEntry = PresenceEntry
 
 export function roomPresenceQueryKey(roomId: string) {
   return ['room-presence', roomId] as const
 }
 
 export function useRoomPresence(roomId: string | undefined) {
-  const { user, isAuthenticated } = useAuth()
+  const { user } = useAuth()
   const currentUserId = user?.id ?? ''
   const normalizedRoomId = roomId?.trim() ?? ''
-  const [streamState, setStreamState] = useState<StreamPresenceState>({
-    roomId: '',
-    presencesByUserId: {},
-  })
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  const presence = usePresence()
 
-  const query = useQuery({
-    queryKey: roomPresenceQueryKey(normalizedRoomId),
-    enabled: isAuthenticated && normalizedRoomId.length > 0,
-    staleTime: PRESENCE_STALE_TIME_MS,
-    queryFn: async () => {
-      const response = await PresenceService.getRoomPresence({
-        roomId: normalizedRoomId,
-      })
-
-      return toPresenceMap(response.presences)
-    },
-  })
-
-  useEffect(() => {
-    if (!isAuthenticated || normalizedRoomId.length === 0) {
-      return
-    }
-
-    const abortController = new AbortController()
-
-    async function readPresenceStream() {
-      try {
-        const stream = PresenceService.streamPresence(
-          {
-            roomId: normalizedRoomId,
-          },
-          {
-            signal: abortController.signal,
-          },
-        )
-
-        for await (const event of stream) {
-          if (abortController.signal.aborted) {
-            return
-          }
-
-          const entry = toPresenceEntry(event)
-          if (!entry || entry.roomId !== normalizedRoomId) {
-            continue
-          }
-
-          setStreamState((current) => {
-            const currentPresences =
-              current.roomId === normalizedRoomId ? current.presencesByUserId : {}
-
-            return {
-              roomId: normalizedRoomId,
-              presencesByUserId: {
-                ...currentPresences,
-                [entry.userId]: entry,
-              },
-            }
-          })
-
-          setNowMs(Date.now())
-        }
-      } catch {
-        // Presence intentionally falls back to the last snapshot and offline defaults.
-      }
-    }
-
-    void readPresenceStream()
-
-    return () => {
-      abortController.abort()
-    }
-  }, [isAuthenticated, normalizedRoomId])
+  useStreamPresence(normalizedRoomId)
 
   const presencesByUserId = useMemo(() => {
-    const fetchedPresences = query.data ?? {}
-    const streamedPresences =
-      streamState.roomId === normalizedRoomId ? streamState.presencesByUserId : {}
+    const nextPresencesByUserId: PresenceByUserId = {}
 
-    return toEffectivePresenceMap(
-      {
-        ...fetchedPresences,
-        ...streamedPresences,
-      },
-      nowMs,
-    )
-  }, [normalizedRoomId, nowMs, query.data, streamState])
+    for (const entry of presence.getRoomPresences(normalizedRoomId)) {
+      nextPresencesByUserId[entry.userId] = entry
+    }
+
+    return nextPresencesByUserId
+  }, [normalizedRoomId, presence])
 
   const onlineCount = useMemo(
-    () =>
-      Object.values(presencesByUserId).filter((presence) => isPresenceOnline(presence.status))
-        .length,
-    [presencesByUserId],
+    () => presence.getOnlineCount(normalizedRoomId),
+    [normalizedRoomId, presence],
   )
 
   const typingUserIds = useMemo(
-    () =>
-      Object.values(presencesByUserId)
-        .filter((presence) => presence.status === 'typing' && presence.userId !== currentUserId)
-        .map((presence) => presence.userId),
-    [currentUserId, presencesByUserId],
+    () => presence.getTypingUsers(normalizedRoomId, currentUserId),
+    [currentUserId, normalizedRoomId, presence],
   )
 
-  const hasTypingUsers = typingUserIds.length > 0
-
-  useEffect(() => {
-    if (!hasTypingUsers) {
-      return
-    }
-
-    const timer = window.setInterval(() => {
-      setNowMs(Date.now())
-    }, 500)
-
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [hasTypingUsers])
-
   async function sendTyping() {
-    if (!isAuthenticated || normalizedRoomId.length === 0) {
+    if (!normalizedRoomId) {
       return false
     }
 
-    try {
-      await PresenceService.setTyping({
-        roomId: normalizedRoomId,
-      })
-
-      return true
-    } catch {
-      return false
-    }
+    return presence.sendTyping(normalizedRoomId)
   }
 
   return {
-    ...query,
     presencesByUserId,
     onlineCount,
     typingUserIds,
     sendTyping,
     getStatus(userId: string) {
-      return getPresenceStatus(presencesByUserId, userId)
+      return presence.getStatus(normalizedRoomId, userId)
     },
   }
 }
@@ -202,77 +83,4 @@ export function formatPresenceStatus(status: RoomPresenceStatus) {
     default:
       return 'offline'
   }
-}
-
-function toPresenceMap(events: PresenceEvent[]) {
-  const presencesByUserId: PresenceByUserId = {}
-
-  for (const event of events) {
-    const entry = toPresenceEntry(event)
-    if (!entry) {
-      continue
-    }
-
-    presencesByUserId[entry.userId] = entry
-  }
-
-  return presencesByUserId
-}
-
-function toPresenceEntry(event: PresenceEvent): RoomPresenceEntry | null {
-  const userId = event.userId.trim()
-  if (!userId) {
-    return null
-  }
-
-  return {
-    userId,
-    roomId: event.roomId.trim(),
-    status: protoStatusToPresenceStatus(event.status),
-    timestamp: event.timestamp?.toDate().toISOString() ?? new Date().toISOString(),
-  }
-}
-
-function protoStatusToPresenceStatus(status: PresenceStatus): RoomPresenceStatus {
-  switch (status) {
-    case PresenceStatus.ONLINE:
-      return 'online'
-    case PresenceStatus.TYPING:
-      return 'typing'
-    case PresenceStatus.OFFLINE:
-    case PresenceStatus.UNSPECIFIED:
-    default:
-      return 'offline'
-  }
-}
-
-function toEffectivePresenceMap(
-  presencesByUserId: PresenceByUserId,
-  nowMs: number,
-): PresenceByUserId {
-  const effectivePresencesByUserId: PresenceByUserId = {}
-
-  for (const [userId, presence] of Object.entries(presencesByUserId)) {
-    effectivePresencesByUserId[userId] = isTypingExpired(presence, nowMs)
-      ? {
-          ...presence,
-          status: 'online',
-        }
-      : presence
-  }
-
-  return effectivePresencesByUserId
-}
-
-function isTypingExpired(presence: RoomPresenceEntry, nowMs: number) {
-  if (presence.status !== 'typing') {
-    return false
-  }
-
-  const timestampMs = Date.parse(presence.timestamp ?? '')
-  if (!Number.isFinite(timestampMs)) {
-    return false
-  }
-
-  return nowMs - timestampMs > TYPING_EXPIRY_MS
 }
