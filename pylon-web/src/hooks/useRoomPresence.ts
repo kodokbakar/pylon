@@ -85,7 +85,6 @@ export function useRoomPresence(roomId: string | undefined) {
           setStreamState((current) => {
             const currentPresences =
               current.roomId === normalizedRoomId ? current.presencesByUserId : {}
-            setNowMs(Date.now())
 
             return {
               roomId: normalizedRoomId,
@@ -95,6 +94,8 @@ export function useRoomPresence(roomId: string | undefined) {
               },
             }
           })
+
+          setNowMs(Date.now())
         }
       } catch {
         // Presence intentionally falls back to the last snapshot and offline defaults.
