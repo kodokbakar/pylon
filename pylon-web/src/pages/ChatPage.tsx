@@ -3,14 +3,24 @@ import { Link, useParams } from 'react-router-dom'
 import { MessageInput } from '../components/chat/MessageInput'
 import { MessageList } from '../components/chat/MessageList'
 import { RoomList } from '../components/room/RoomList'
-import { useChatMessages } from '../hooks/useChatMessages'
+import { useChatMessages, type ChatMessage } from '../hooks/useChatMessages'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useRoom } from '../hooks/useRoom'
+import { TypingIndicator } from '../components/presence/TypingIndicator'
+import { useRoomMembers, type RoomMemberListItem } from '../hooks/useRoomMembers'
+import { useRoomPresence } from '../hooks/useRoomPresence'
 
 export function ChatPage() {
   const { roomId } = useParams<{ roomId: string }>()
   const roomQuery = useRoom(roomId)
   const chat = useChatMessages(roomId)
+  const membersQuery = useRoomMembers(roomId)
+  const presence = useRoomPresence(roomId)
+  const typingUserNames = getTypingUserNames(
+    presence.typingUserIds,
+    membersQuery.members,
+    chat.messages,
+  )
 
   const roomName = roomQuery.room?.name.trim() || 'Room chat'
   useDocumentTitle(`${roomName} / Pylon Chat`)
@@ -68,11 +78,14 @@ export function ChatPage() {
                   onLoadOlder={chat.loadOlder}
                 />
 
+                <TypingIndicator names={typingUserNames} />
+
                 <MessageInput
                   connectionState={chat.connectionState}
                   disabled={!chat.canSend}
                   sendError={chat.sendError}
                   onSend={chat.sendMessage}
+                  onTyping={() => void presence.sendTyping()}
                 />
               </>
             )}
@@ -92,4 +105,33 @@ function RealtimeStat({ label, value }: { label: string; value: string }) {
       <p className="mt-1 break-all text-sm font-black uppercase tracking-[-0.03em]">{value}</p>
     </div>
   )
+}
+
+function getTypingUserNames(
+  userIds: string[],
+  members: RoomMemberListItem[],
+  messages: ChatMessage[],
+) {
+  const namesByUserId = new Map<string, string>()
+
+  for (const message of messages) {
+    const name = message.senderName || message.senderUsername
+    if (message.senderId && name) {
+      namesByUserId.set(message.senderId, name)
+    }
+  }
+
+  for (const member of members) {
+    const name = member.name || member.username
+    if (member.id && name) {
+      namesByUserId.set(member.id, name)
+    }
+  }
+
+  return userIds.map((userId) => namesByUserId.get(userId) ?? fallbackTypingName(userId))
+}
+
+function fallbackTypingName(userId: string) {
+  const shortId = userId.trim().slice(0, 8)
+  return shortId ? `User ${shortId}` : 'Someone'
 }

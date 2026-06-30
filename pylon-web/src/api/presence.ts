@@ -5,6 +5,7 @@ import {
   GetRoomPresenceRequest,
   type GetRoomPresenceResponse,
   type PresenceEvent,
+  SetTypingRequest,
   StreamPresenceRequest,
 } from './gen/pylon/presence/v1/presence_service_pb'
 import { PresenceService as PresenceServiceDefinition } from './gen/pylon/presence/v1/presence_service_connect'
@@ -18,6 +19,10 @@ async function getRoomPresence(
   return client.getRoomPresence(input)
 }
 
+async function setTyping(input: PartialMessage<SetTypingRequest>): Promise<void> {
+  await client.setTyping(input)
+}
+
 function streamPresence(
   input: PartialMessage<StreamPresenceRequest>,
   options?: CallOptions,
@@ -27,5 +32,6 @@ function streamPresence(
 
 export const PresenceService = {
   getRoomPresence,
+  setTyping,
   streamPresence,
 }

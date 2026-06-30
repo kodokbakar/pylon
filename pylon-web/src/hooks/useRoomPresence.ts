@@ -25,18 +25,21 @@ type StreamPresenceState = {
 }
 
 const PRESENCE_STALE_TIME_MS = 10_000
+const TYPING_EXPIRY_MS = 3_000
 
 export function roomPresenceQueryKey(roomId: string) {
   return ['room-presence', roomId] as const
 }
 
 export function useRoomPresence(roomId: string | undefined) {
-  const { isAuthenticated } = useAuth()
+  const { user, isAuthenticated } = useAuth()
+  const currentUserId = user?.id ?? ''
   const normalizedRoomId = roomId?.trim() ?? ''
   const [streamState, setStreamState] = useState<StreamPresenceState>({
     roomId: '',
     presencesByUserId: {},
   })
+  const [nowMs, setNowMs] = useState(() => Date.now())
 
   const query = useQuery({
     queryKey: roomPresenceQueryKey(normalizedRoomId),
@@ -82,6 +85,7 @@ export function useRoomPresence(roomId: string | undefined) {
           setStreamState((current) => {
             const currentPresences =
               current.roomId === normalizedRoomId ? current.presencesByUserId : {}
+            setNowMs(Date.now())
 
             return {
               roomId: normalizedRoomId,
@@ -109,11 +113,14 @@ export function useRoomPresence(roomId: string | undefined) {
     const streamedPresences =
       streamState.roomId === normalizedRoomId ? streamState.presencesByUserId : {}
 
-    return {
-      ...fetchedPresences,
-      ...streamedPresences,
-    }
-  }, [normalizedRoomId, query.data, streamState])
+    return toEffectivePresenceMap(
+      {
+        ...fetchedPresences,
+        ...streamedPresences,
+      },
+      nowMs,
+    )
+  }, [normalizedRoomId, nowMs, query.data, streamState])
 
   const onlineCount = useMemo(
     () =>
@@ -122,10 +129,52 @@ export function useRoomPresence(roomId: string | undefined) {
     [presencesByUserId],
   )
 
+  const typingUserIds = useMemo(
+    () =>
+      Object.values(presencesByUserId)
+        .filter((presence) => presence.status === 'typing' && presence.userId !== currentUserId)
+        .map((presence) => presence.userId),
+    [currentUserId, presencesByUserId],
+  )
+
+  const hasTypingUsers = typingUserIds.length > 0
+
+  useEffect(() => {
+    if (!hasTypingUsers) {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now())
+    }, 500)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [hasTypingUsers])
+
+  async function sendTyping() {
+    if (!isAuthenticated || normalizedRoomId.length === 0) {
+      return false
+    }
+
+    try {
+      await PresenceService.setTyping({
+        roomId: normalizedRoomId,
+      })
+
+      return true
+    } catch {
+      return false
+    }
+  }
+
   return {
     ...query,
     presencesByUserId,
     onlineCount,
+    typingUserIds,
+    sendTyping,
     getStatus(userId: string) {
       return getPresenceStatus(presencesByUserId, userId)
     },
@@ -179,7 +228,7 @@ function toPresenceEntry(event: PresenceEvent): RoomPresenceEntry | null {
     userId,
     roomId: event.roomId.trim(),
     status: protoStatusToPresenceStatus(event.status),
-    timestamp: event.timestamp?.toDate().toISOString() ?? null,
+    timestamp: event.timestamp?.toDate().toISOString() ?? new Date().toISOString(),
   }
 }
 
@@ -194,4 +243,35 @@ function protoStatusToPresenceStatus(status: PresenceStatus): RoomPresenceStatus
     default:
       return 'offline'
   }
+}
+
+function toEffectivePresenceMap(
+  presencesByUserId: PresenceByUserId,
+  nowMs: number,
+): PresenceByUserId {
+  const effectivePresencesByUserId: PresenceByUserId = {}
+
+  for (const [userId, presence] of Object.entries(presencesByUserId)) {
+    effectivePresencesByUserId[userId] = isTypingExpired(presence, nowMs)
+      ? {
+          ...presence,
+          status: 'online',
+        }
+      : presence
+  }
+
+  return effectivePresencesByUserId
+}
+
+function isTypingExpired(presence: RoomPresenceEntry, nowMs: number) {
+  if (presence.status !== 'typing') {
+    return false
+  }
+
+  const timestampMs = Date.parse(presence.timestamp ?? '')
+  if (!Number.isFinite(timestampMs)) {
+    return false
+  }
+
+  return nowMs - timestampMs > TYPING_EXPIRY_MS
 }
