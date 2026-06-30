@@ -15,6 +15,7 @@ import (
 
 	authv1connect "github.com/kodokbakar/pylon/gen/pylon/auth/v1/authv1connect"
 	chatv1connect "github.com/kodokbakar/pylon/gen/pylon/chat/v1/chatv1connect"
+	presencev1connect "github.com/kodokbakar/pylon/gen/pylon/presence/v1/presencev1connect"
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	"github.com/kodokbakar/pylon/internal/config"
 	internalmetrics "github.com/kodokbakar/pylon/internal/metrics"
@@ -28,20 +29,21 @@ import (
 )
 
 type Server struct {
-	cfg                *config.Config
-	clients            *gatewayclient.Clients
-	mux                *http.ServeMux
-	httpServer         *http.Server
-	authDB             *pgxpool.Pool
-	redisClient        *redis.Client
-	authHandler        *gatewayhandler.AuthHandler
-	authConnectHandler *gatewayhandler.AuthConnectHandler
-	roomHandler        *gatewayhandler.RoomHandler
-	roomConnectHandler *gatewayhandler.RoomConnectHandler
-	messageHandler     *gatewayhandler.MessageHandler
-	webSocketHandler   *gatewayhandler.WebSocketHandler
-	authMiddleware     *gatewaymiddleware.AuthMiddleware
-	rateLimiter        *internalmiddleware.RateLimiter
+	cfg                    *config.Config
+	clients                *gatewayclient.Clients
+	mux                    *http.ServeMux
+	httpServer             *http.Server
+	authDB                 *pgxpool.Pool
+	redisClient            *redis.Client
+	authHandler            *gatewayhandler.AuthHandler
+	authConnectHandler     *gatewayhandler.AuthConnectHandler
+	roomHandler            *gatewayhandler.RoomHandler
+	roomConnectHandler     *gatewayhandler.RoomConnectHandler
+	presenceConnectHandler *gatewayhandler.PresenceConnectHandler
+	messageHandler         *gatewayhandler.MessageHandler
+	webSocketHandler       *gatewayhandler.WebSocketHandler
+	authMiddleware         *gatewaymiddleware.AuthMiddleware
+	rateLimiter            *internalmiddleware.RateLimiter
 }
 
 func New(cfg *config.Config) (*Server, error) {
@@ -68,6 +70,16 @@ func New(cfg *config.Config) (*Server, error) {
 		clients.Room.HTTPClient,
 		clients.Room.BaseURL,
 	)
+
+	presenceClient := presencev1connect.NewPresenceServiceClient(
+		clients.Presence.StreamingHTTPClient,
+		clients.Presence.BaseURL,
+	)
+
+	presenceConnectHandler, err := gatewayhandler.NewPresenceConnectHandler(presenceClient)
+	if err != nil {
+		return nil, fmt.Errorf("create presence connect handler: %w", err)
+	}
 
 	roomConnectHandler, err := gatewayhandler.NewRoomConnectHandler(roomClient)
 	if err != nil {
@@ -98,19 +110,20 @@ func New(cfg *config.Config) (*Server, error) {
 	}
 
 	server := &Server{
-		cfg:                cfg,
-		clients:            clients,
-		mux:                http.NewServeMux(),
-		authDB:             authDB,
-		redisClient:        redisClient,
-		authHandler:        gatewayhandler.NewAuthHandler(authService),
-		authConnectHandler: gatewayhandler.NewAuthConnectHandler(authService),
-		roomHandler:        gatewayhandler.NewRoomHandler(roomClient),
-		roomConnectHandler: roomConnectHandler,
-		messageHandler:     gatewayhandler.NewMessageHandler(chatClient),
-		webSocketHandler:   webSocketHandler,
-		authMiddleware:     authMiddleware,
-		rateLimiter:        rateLimiter,
+		cfg:                    cfg,
+		clients:                clients,
+		mux:                    http.NewServeMux(),
+		authDB:                 authDB,
+		redisClient:            redisClient,
+		authHandler:            gatewayhandler.NewAuthHandler(authService),
+		authConnectHandler:     gatewayhandler.NewAuthConnectHandler(authService),
+		roomHandler:            gatewayhandler.NewRoomHandler(roomClient),
+		roomConnectHandler:     roomConnectHandler,
+		presenceConnectHandler: presenceConnectHandler,
+		messageHandler:         gatewayhandler.NewMessageHandler(chatClient),
+		webSocketHandler:       webSocketHandler,
+		authMiddleware:         authMiddleware,
+		rateLimiter:            rateLimiter,
 	}
 
 	server.registerRoutes()
@@ -215,6 +228,9 @@ func (s *Server) registerRoutes() {
 
 	roomConnectPath, roomConnectHandler := roomv1connect.NewRoomServiceHandler(s.roomConnectHandler)
 	s.mux.Handle(roomConnectPath, s.authMiddleware.RequireAuth(roomConnectHandler))
+
+	presenceConnectPath, presenceConnectHandler := presencev1connect.NewPresenceServiceHandler(s.presenceConnectHandler)
+	s.mux.Handle(presenceConnectPath, s.authMiddleware.RequireAuth(presenceConnectHandler))
 
 	s.mux.HandleFunc("POST /api/v1/auth/register", s.authHandler.Register)
 	s.mux.HandleFunc("POST /api/v1/auth/login", s.authHandler.Login)

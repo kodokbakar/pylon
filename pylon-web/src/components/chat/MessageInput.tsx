@@ -1,17 +1,27 @@
 import type { FormEvent, KeyboardEvent } from 'react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 type MessageInputProps = {
   disabled: boolean
   connectionState: string
   sendError: string | null
   onSend: (content: string) => boolean
+  onTyping: () => void
 }
+
+const typingDebounceMs = 2_000
 
 const maxMessageLength = 10_000
 
-export function MessageInput({ disabled, connectionState, sendError, onSend }: MessageInputProps) {
+export function MessageInput({
+  disabled,
+  connectionState,
+  sendError,
+  onSend,
+  onTyping,
+}: MessageInputProps) {
   const [content, setContent] = useState('')
+  const lastTypingAtRef = useRef(0)
 
   function handleSubmit(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault()
@@ -22,7 +32,25 @@ export function MessageInput({ disabled, connectionState, sendError, onSend }: M
     }
   }
 
+  function notifyTyping() {
+    if (disabled) {
+      return
+    }
+
+    const now = Date.now()
+    if (now - lastTypingAtRef.current < typingDebounceMs) {
+      return
+    }
+
+    lastTypingAtRef.current = now
+    onTyping()
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (shouldNotifyTyping(event)) {
+      notifyTyping()
+    }
+
     if (event.key !== 'Enter' || event.shiftKey) {
       return
     }
@@ -84,4 +112,12 @@ export function MessageInput({ disabled, connectionState, sendError, onSend }: M
       ) : null}
     </form>
   )
+}
+
+function shouldNotifyTyping(event: KeyboardEvent<HTMLTextAreaElement>) {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return false
+  }
+
+  return event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete'
 }

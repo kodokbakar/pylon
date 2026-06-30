@@ -4,8 +4,13 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useRooms } from '../../hooks/useRooms'
 import { CreateRoomModal } from './CreateRoomModal'
 import { RoomItem } from './RoomItem'
+import { useRoomPresence } from '../../hooks/useRoomPresence'
 
-export function RoomList() {
+type RoomListProps = {
+  onRoomSelect?: () => void
+}
+
+export function RoomList({ onRoomSelect }: RoomListProps) {
   const navigate = useNavigate()
   const { roomId: activeRoomId } = useParams<{ roomId: string }>()
   const { rooms, isLoading, isError, error, refetch, missingUser } = useRooms()
@@ -77,11 +82,14 @@ export function RoomList() {
       {!isLoading && !missingUser && !isError && rooms.length > 0 ? (
         <nav aria-label="Rooms">
           {rooms.map((room) => (
-            <RoomItem
-              isActive={room.id === activeRoomId}
+            <RoomPresenceItem
+              activeRoomId={activeRoomId}
               key={room.id}
               room={room}
-              onClick={() => navigate(`/rooms/${room.id}`)}
+              onClick={() => {
+                navigate(`/rooms/${room.id}/chat`)
+                onRoomSelect?.()
+              }}
             />
           ))}
         </nav>
@@ -93,6 +101,27 @@ export function RoomList() {
         onClose={() => setIsCreateModalOpen(false)}
       />
     </section>
+  )
+}
+
+function RoomPresenceItem({
+  room,
+  activeRoomId,
+  onClick,
+}: {
+  room: ReturnType<typeof useRooms>['rooms'][number]
+  activeRoomId: string | undefined
+  onClick: () => void
+}) {
+  const presence = useRoomPresence(room.id)
+
+  return (
+    <RoomItem
+      isActive={room.id === activeRoomId}
+      onlineCount={presence.onlineCount}
+      room={room}
+      onClick={onClick}
+    />
   )
 }
 

@@ -9,6 +9,11 @@ import { ChatPage } from './pages/ChatPage'
 import { RoomDetailPage } from './pages/RoomDetailPage'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { PublicRoute } from './routes/PublicRoute'
+import { PresenceProvider } from './context/PresenceContext'
+import type { PropsWithChildren } from 'react'
+import { AppLayout } from './components/layout/AppLayout'
+
+import { useAuth } from './hooks/useAuth'
 
 const router = createBrowserRouter([
   {
@@ -28,16 +33,25 @@ const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        path: '/',
-        element: <HomePage />,
-      },
-      {
-        path: '/rooms/:roomId',
-        element: <RoomDetailPage />,
-      },
-      {
-        path: '/rooms/:roomId/chat',
-        element: <ChatPage />,
+        element: <AppLayout />,
+        children: [
+          {
+            path: '/',
+            element: <HomePage />,
+          },
+          {
+            path: '/rooms/:roomId',
+            element: <RoomDetailPage />,
+          },
+          {
+            path: '/rooms/:roomId/chat',
+            element: <ChatPage />,
+          },
+          {
+            path: '*',
+            element: <NotFoundPage />,
+          },
+        ],
       },
     ],
   },
@@ -50,7 +64,16 @@ const router = createBrowserRouter([
 export default function App() {
   return (
     <WebSocketProvider>
-      <RouterProvider router={router} />
+      <PresenceProviderScope>
+        <RouterProvider router={router} />
+      </PresenceProviderScope>
     </WebSocketProvider>
   )
+}
+
+function PresenceProviderScope({ children }: PropsWithChildren) {
+  const { token, user } = useAuth()
+  const providerKey = token ? (user?.id ?? token) : 'anonymous'
+
+  return <PresenceProvider key={providerKey}>{children}</PresenceProvider>
 }

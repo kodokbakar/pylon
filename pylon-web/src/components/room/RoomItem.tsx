@@ -1,12 +1,14 @@
 import type { RoomListItemData } from '../../hooks/useRooms'
+import { StatusIndicator } from '../presence/StatusIndicator'
 
 type RoomItemProps = {
   room: RoomListItemData
   isActive: boolean
+  onlineCount: number
   onClick: () => void
 }
 
-export function RoomItem({ room, isActive, onClick }: RoomItemProps) {
+export function RoomItem({ room, isActive, onlineCount, onClick }: RoomItemProps) {
   return (
     <button
       aria-current={isActive ? 'page' : undefined}
@@ -50,6 +52,18 @@ export function RoomItem({ room, isActive, onClick }: RoomItemProps) {
           }`}
         >
           {formatRoomTimestamp(room.updatedAt)}
+        </span>
+
+        <span
+          className={`inline-flex items-center gap-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] ${
+            isActive ? 'text-[var(--color-line)]' : 'text-[var(--color-muted)]'
+          }`}
+        >
+          <StatusIndicator
+            label={`${onlineCount} online in ${room.name}`}
+            status={onlineCount > 0 ? 'online' : 'offline'}
+          />
+          {onlineCount}
         </span>
 
         {room.unreadCount > 0 ? (
