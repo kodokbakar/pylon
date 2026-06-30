@@ -21,9 +21,10 @@ type Clients struct {
 }
 
 type ServiceClient struct {
-	Name       string
-	BaseURL    string
-	HTTPClient *http.Client
+	Name                string
+	BaseURL             string
+	HTTPClient          *http.Client
+	StreamingHTTPClient *http.Client
 }
 
 func NewClients(cfg config.ServicesConfig) (*Clients, error) {
@@ -71,6 +72,9 @@ func NewServiceClient(name, rawURL string) (*ServiceClient, error) {
 		BaseURL: baseURL,
 		HTTPClient: &http.Client{
 			Timeout:   10 * time.Second,
+			Transport: internaltracing.HTTPTransport(http.DefaultTransport),
+		},
+		StreamingHTTPClient: &http.Client{
 			Transport: internaltracing.HTTPTransport(http.DefaultTransport),
 		},
 	}, nil

@@ -12,6 +12,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/golang-jwt/jwt/v5"
 	chatv1 "github.com/kodokbakar/pylon/gen/pylon/chat/v1"
+	presencev1 "github.com/kodokbakar/pylon/gen/pylon/presence/v1"
+	presencev1connect "github.com/kodokbakar/pylon/gen/pylon/presence/v1/presencev1connect"
 	roomv1 "github.com/kodokbakar/pylon/gen/pylon/room/v1"
 	roomv1connect "github.com/kodokbakar/pylon/gen/pylon/room/v1/roomv1connect"
 	gatewaymiddleware "github.com/kodokbakar/pylon/services/api-gateway/middleware"
@@ -110,6 +112,81 @@ func (c fakeMessageClient) GetMessages(
 	return connect.NewResponse(&chatv1.GetMessagesResponse{}), nil
 }
 
+type fakePresenceClient struct {
+	setOnlineFunc       func(context.Context, *connect.Request[presencev1.SetOnlineRequest]) (*connect.Response[emptypb.Empty], error)
+	setOfflineFunc      func(context.Context, *connect.Request[presencev1.SetOfflineRequest]) (*connect.Response[emptypb.Empty], error)
+	setTypingFunc       func(context.Context, *connect.Request[presencev1.SetTypingRequest]) (*connect.Response[emptypb.Empty], error)
+	getPresenceFunc     func(context.Context, *connect.Request[presencev1.GetPresenceRequest]) (*connect.Response[presencev1.GetPresenceResponse], error)
+	getRoomPresenceFunc func(context.Context, *connect.Request[presencev1.GetRoomPresenceRequest]) (*connect.Response[presencev1.GetRoomPresenceResponse], error)
+	streamPresenceFunc  func(context.Context, *connect.Request[presencev1.StreamPresenceRequest]) (*connect.ServerStreamForClient[presencev1.PresenceEvent], error)
+}
+
+func (c fakePresenceClient) SetOnline(
+	ctx context.Context,
+	req *connect.Request[presencev1.SetOnlineRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	if c.setOnlineFunc != nil {
+		return c.setOnlineFunc(ctx, req)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (c fakePresenceClient) SetOffline(
+	ctx context.Context,
+	req *connect.Request[presencev1.SetOfflineRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	if c.setOfflineFunc != nil {
+		return c.setOfflineFunc(ctx, req)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (c fakePresenceClient) SetTyping(
+	ctx context.Context,
+	req *connect.Request[presencev1.SetTypingRequest],
+) (*connect.Response[emptypb.Empty], error) {
+	if c.setTypingFunc != nil {
+		return c.setTypingFunc(ctx, req)
+	}
+
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (c fakePresenceClient) GetPresence(
+	ctx context.Context,
+	req *connect.Request[presencev1.GetPresenceRequest],
+) (*connect.Response[presencev1.GetPresenceResponse], error) {
+	if c.getPresenceFunc != nil {
+		return c.getPresenceFunc(ctx, req)
+	}
+
+	return connect.NewResponse(&presencev1.GetPresenceResponse{}), nil
+}
+
+func (c fakePresenceClient) GetRoomPresence(
+	ctx context.Context,
+	req *connect.Request[presencev1.GetRoomPresenceRequest],
+) (*connect.Response[presencev1.GetRoomPresenceResponse], error) {
+	if c.getRoomPresenceFunc != nil {
+		return c.getRoomPresenceFunc(ctx, req)
+	}
+
+	return connect.NewResponse(&presencev1.GetRoomPresenceResponse{}), nil
+}
+
+func (c fakePresenceClient) StreamPresence(
+	ctx context.Context,
+	req *connect.Request[presencev1.StreamPresenceRequest],
+) (*connect.ServerStreamForClient[presencev1.PresenceEvent], error) {
+	if c.streamPresenceFunc != nil {
+		return c.streamPresenceFunc(ctx, req)
+	}
+
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("stream presence is not configured"))
+}
+
 func TestRoomHandlerListRoomsForwardsAuthenticatedUserID(t *testing.T) {
 	roomHandler := NewRoomHandler(fakeRoomClient{
 		listRoomsFunc: func(ctx context.Context, req *connect.Request[roomv1.ListRoomsRequest]) (*connect.Response[roomv1.ListRoomsResponse], error) {
@@ -206,6 +283,88 @@ func TestRoomConnectHandlerCreateRoomUsesAuthenticatedCreatorID(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPresenceConnectHandlerSetOnlineUsesAuthenticatedUserID(t *testing.T) {
+	presenceHandler, err := NewPresenceConnectHandler(fakePresenceClient{
+		setOnlineFunc: func(ctx context.Context, req *connect.Request[presencev1.SetOnlineRequest]) (*connect.Response[emptypb.Empty], error) {
+			if req.Msg.GetUserId() != "user-1" {
+				t.Fatalf("expected authenticated user-1, got %q", req.Msg.GetUserId())
+			}
+
+			if req.Msg.GetRoomId() != "room-1" {
+				t.Fatalf("expected room-1, got %q", req.Msg.GetRoomId())
+			}
+
+			return connect.NewResponse(&emptypb.Empty{}), nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("create presence connect handler: %v", err)
+	}
+
+	handler := requireAuth(t, presencev1connectHandler(t, presenceHandler))
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.presence.v1.PresenceService/SetOnline",
+		strings.NewReader(`{"userId":"spoofed-user","roomId":" room-1 "}`),
+	)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPresenceConnectHandlerGetRoomPresenceForwardsRoomID(t *testing.T) {
+	presenceHandler, err := NewPresenceConnectHandler(fakePresenceClient{
+		getRoomPresenceFunc: func(ctx context.Context, req *connect.Request[presencev1.GetRoomPresenceRequest]) (*connect.Response[presencev1.GetRoomPresenceResponse], error) {
+			if req.Msg.GetRoomId() != "room-1" {
+				t.Fatalf("expected room-1, got %q", req.Msg.GetRoomId())
+			}
+
+			return connect.NewResponse(&presencev1.GetRoomPresenceResponse{
+				Presences: []*presencev1.PresenceEvent{
+					{
+						UserId: "user-2",
+						RoomId: "room-1",
+						Status: presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE,
+					},
+				},
+			}), nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("create presence connect handler: %v", err)
+	}
+
+	handler := requireAuth(t, presencev1connectHandler(t, presenceHandler))
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/pylon.presence.v1.PresenceService/GetRoomPresence",
+		strings.NewReader(`{"roomId":" room-1 "}`),
+	)
+	req.Header.Set("Authorization", "Bearer "+testJWT(t, "user-1"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if !strings.Contains(rec.Body.String(), `"userId":"user-2"`) {
+		t.Fatalf("expected presence response, got %s", rec.Body.String())
 	}
 }
 
@@ -584,6 +743,17 @@ func roomv1connectHandler(t *testing.T, roomHandler *RoomConnectHandler) http.Ha
 	path, handler := roomv1connect.NewRoomServiceHandler(roomHandler)
 	if path != "/pylon.room.v1.RoomService/" {
 		t.Fatalf("unexpected room connect path %q", path)
+	}
+
+	return handler
+}
+
+func presencev1connectHandler(t *testing.T, presenceHandler *PresenceConnectHandler) http.Handler {
+	t.Helper()
+
+	path, handler := presencev1connect.NewPresenceServiceHandler(presenceHandler)
+	if path != "/pylon.presence.v1.PresenceService/" {
+		t.Fatalf("unexpected presence connect path %q", path)
 	}
 
 	return handler
