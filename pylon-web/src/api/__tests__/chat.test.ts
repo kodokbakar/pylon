@@ -68,6 +68,37 @@ describe('ChatService REST client', () => {
     ])
   })
 
+  it.each([
+    [2, 'image'],
+    [3, 'system'],
+    [4, 'file'],
+    [99, 'text'],
+  ])('normalizes numeric msg_type %i to %s', async (rawMsgType, expectedMsgType) => {
+    mockApiFetch.mockResolvedValue(
+      jsonResponse({
+        data: {
+          messages: [
+            {
+              id: `message-${rawMsgType}`,
+              room_id: 'room-1',
+              sender_id: 'user-1',
+              content: 'Typed message',
+              msg_type: rawMsgType,
+              created_at: '2026-07-01T00:00:00.000Z',
+            },
+          ],
+          has_more: false,
+        },
+      }),
+    )
+
+    const result = await ChatService.getMessages({
+      roomId: 'room-1',
+    })
+
+    expect(result.messages[0]?.msgType).toBe(expectedMsgType)
+  })
+
   it('uses default limit and omits before_id when beforeId is not provided', async () => {
     mockApiFetch.mockResolvedValue(
       jsonResponse({

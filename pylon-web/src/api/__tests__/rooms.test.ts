@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { CreateRoomResponse, ListRoomsResponse, Room } from '../gen/pylon/room/v1/room_service_pb'
+import {
+  CreateRoomResponse,
+  GetRoomMembersResponse,
+  GetRoomResponse,
+  ListRoomsResponse,
+  Room,
+  RoomMember,
+} from '../gen/pylon/room/v1/room_service_pb'
 
 const mockRoomClient = vi.hoisted(() => ({
   createRoom: vi.fn(),
@@ -74,6 +81,60 @@ describe('RoomService API client', () => {
     })
     expect(response.room?.id).toBe('room-created')
     expect(response.room?.name).toBe('Incident Room')
+  })
+
+  it('calls getRoom and returns the mocked room detail response', async () => {
+    const response = new GetRoomResponse({
+      room: new Room({
+        id: 'room-1',
+        name: 'Engineering',
+      }),
+    })
+
+    mockRoomClient.getRoom.mockResolvedValue(response)
+
+    await expect(
+      RoomService.getRoom({
+        roomId: 'room-1',
+      }),
+    ).resolves.toBe(response)
+
+    expect(mockRoomClient.getRoom).toHaveBeenCalledTimes(1)
+    expect(mockRoomClient.getRoom).toHaveBeenCalledWith({
+      roomId: 'room-1',
+    })
+    expect(response.room?.id).toBe('room-1')
+    expect(response.room?.name).toBe('Engineering')
+  })
+
+  it('calls getRoomMembers and returns the mocked members response', async () => {
+    const response = new GetRoomMembersResponse({
+      members: [
+        new RoomMember({
+          userId: 'user-1',
+          username: 'operator',
+          displayName: 'Pylon Operator',
+          role: 'owner',
+          avatarUrl: '',
+        }),
+      ],
+    })
+
+    mockRoomClient.getRoomMembers.mockResolvedValue(response)
+
+    await expect(
+      RoomService.getRoomMembers({
+        roomId: 'room-1',
+      }),
+    ).resolves.toBe(response)
+
+    expect(mockRoomClient.getRoomMembers).toHaveBeenCalledTimes(1)
+    expect(mockRoomClient.getRoomMembers).toHaveBeenCalledWith({
+      roomId: 'room-1',
+    })
+    expect(response.members).toHaveLength(1)
+    expect(response.members[0]?.userId).toBe('user-1')
+    expect(response.members[0]?.role).toBe('owner')
   })
 
   it('calls leaveRoom and resolves when the mocked client resolves', async () => {
