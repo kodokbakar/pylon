@@ -1,13 +1,14 @@
 import { Code, ConnectError } from '@connectrpc/connect'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
+import { PageHeader } from '../components/layout/PageHeader'
 import { StatusIndicator } from '../components/presence/StatusIndicator'
+import { Skeleton } from '../components/ui/Skeleton'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useLeaveRoom } from '../hooks/useLeaveRoom'
 import { useRoom } from '../hooks/useRoom'
 import { useRoomMembers } from '../hooks/useRoomMembers'
 import { formatPresenceStatus, getPresenceStatus, useRoomPresence } from '../hooks/useRoomPresence'
-import { PageHeader } from '../components/layout/PageHeader'
 
 export function RoomDetailPage() {
   const navigate = useNavigate()
@@ -215,14 +216,57 @@ function RoomStat({ label, value }: { label: string; value: string }) {
 function RoomDetailSkeleton() {
   return (
     <div aria-label="Loading room detail">
-      <div className="h-6 w-36 animate-pulse bg-[var(--color-grid)]" />
-      <div className="mt-6 h-24 w-3/4 animate-pulse bg-[var(--color-grid)]" />
-      <div className="mt-8 h-20 w-full animate-pulse bg-[var(--color-grid)]" />
-      <div className="mt-10 space-y-4">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div className="h-16 animate-pulse bg-[var(--color-grid)]" key={index} />
-        ))}
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 xl:col-span-8">
+          <Skeleton className="h-8 w-36" />
+          <Skeleton className="mt-5 h-[clamp(6rem,13vw,10rem)] w-full max-w-4xl" />
+
+          <div className="mt-8 border-t border-[var(--color-line)] pt-5">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="mt-3 h-7 w-full max-w-2xl" />
+            <Skeleton className="mt-3 h-7 w-4/5 max-w-xl" />
+          </div>
+        </div>
+
+        <div className="col-span-12 border-2 border-[var(--color-ink)] xl:col-span-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div className="border-b border-[var(--color-line)] px-4 py-5" key={index}>
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="mt-3 h-6 w-3/4" />
+            </div>
+          ))}
+        </div>
       </div>
+
+      <div className="mt-8 flex flex-col gap-3 border-y-2 border-[var(--color-ink)] py-5 sm:flex-row">
+        <Skeleton className="h-14 flex-1 border-2" />
+        <Skeleton className="h-14 flex-1 border-2" />
+        <Skeleton className="h-14 flex-1 border-2" />
+      </div>
+
+      <section className="mt-10">
+        <div className="border-y-2 border-[var(--color-ink)] py-4">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="mt-3 h-8 w-52" />
+        </div>
+
+        <div className="divide-y divide-[var(--color-line)]">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div className="grid grid-cols-[3rem_1fr_auto] gap-4 py-4" key={index}>
+              <Skeleton className="size-12 border-2" />
+              <div className="min-w-0">
+                <Skeleton className="h-5 w-48 max-w-full" />
+                <Skeleton className="mt-2 h-3 w-36 max-w-full" />
+              </div>
+              <div className="flex min-w-20 flex-col items-end">
+                <Skeleton className="h-3 w-14" />
+                <Skeleton className="mt-3 h-3 w-20" />
+                <Skeleton className="mt-3 h-3 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
