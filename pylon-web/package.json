@@ -10,7 +10,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "proto": "buf generate ../proto --path ../proto/pylon/auth/v1/auth_service.proto --path ../proto/pylon/room/v1/room_service.proto --path ../proto/pylon/presence/v1/presence_service.proto --template buf.gen.yaml"
+    "proto": "buf generate ../proto --path ../proto/pylon/auth/v1/auth_service.proto --path ../proto/pylon/room/v1/room_service.proto --path ../proto/pylon/presence/v1/presence_service.proto --template buf.gen.yaml",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1",
@@ -26,6 +28,9 @@
     "@connectrpc/protoc-gen-connect-es": "^1",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^26.0.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
@@ -35,10 +40,12 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
+    "jsdom": "^29.1.1",
     "prettier": "^3.9.1",
     "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.0",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   }
 }
