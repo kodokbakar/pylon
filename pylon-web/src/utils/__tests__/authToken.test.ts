@@ -4,12 +4,14 @@ import {
   getAuthToken,
   getAuthUser,
   getRefreshToken,
+  getTokenRefreshDelayMs,
+  isTokenExpired,
   removeAuthSession,
   setAuthSession,
   setAuthToken,
+  setAuthTokens,
   setAuthUser,
   setRefreshToken,
-  setAuthTokens,
   type StoredAuthUser,
 } from '../authToken'
 
@@ -81,6 +83,53 @@ describe('authToken storage helpers', () => {
     expect(getAuthUser()).toBeNull()
   })
 })
+
+describe('JWT expiry helpers', () => {
+  it('detects expired tokens from exp', () => {
+    const token = createJwt({
+      iat: 100,
+      exp: 200,
+    })
+
+    expect(isTokenExpired(token, 199_000)).toBe(false)
+    expect(isTokenExpired(token, 200_000)).toBe(true)
+  })
+
+  it('treats malformed tokens as expired', () => {
+    expect(isTokenExpired('not-a-jwt')).toBe(true)
+    expect(isTokenExpired(null)).toBe(true)
+  })
+
+  it('returns the proactive refresh delay at 80 percent of token lifetime', () => {
+    const token = createJwt({
+      iat: 100,
+      exp: 200,
+    })
+
+    expect(getTokenRefreshDelayMs(token, 100_000)).toBe(80_000)
+    expect(getTokenRefreshDelayMs(token, 180_000)).toBe(0)
+  })
+
+  it('falls back to refreshing one minute before expiry when iat is missing', () => {
+    const token = createJwt({
+      exp: 200,
+    })
+
+    expect(getTokenRefreshDelayMs(token, 100_000)).toBe(40_000)
+  })
+})
+
+function createJwt(payload: Record<string, unknown>) {
+  return `${base64UrlEncode({ alg: 'none', typ: 'JWT' })}.${base64UrlEncode(payload)}.signature`
+}
+
+function base64UrlEncode(value: Record<string, unknown>) {
+  return window
+    .btoa(JSON.stringify(value))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
 
 const testUser: StoredAuthUser = {
   id: 'user-1',

@@ -4,6 +4,7 @@ import { createConnectTransport } from '@connectrpc/connect-web'
 import { getApiBaseUrl } from './config'
 import { AuthService as AuthServiceDefinition } from './gen/pylon/auth/v1/auth_service_connect'
 import { getRefreshToken, removeAuthSession, setAuthTokens } from '../utils/authToken'
+import { queueTokenRefresh } from '../utils/tokenRefresh'
 
 const refreshTransport = createConnectTransport({
   baseUrl: getApiBaseUrl(),
@@ -11,16 +12,8 @@ const refreshTransport = createConnectTransport({
 
 const refreshClient = createPromiseClient(AuthServiceDefinition, refreshTransport)
 
-let refreshPromise: Promise<string | null> | null = null
-
 export function refreshAccessToken() {
-  if (!refreshPromise) {
-    refreshPromise = refreshAccessTokenOnce().finally(() => {
-      refreshPromise = null
-    })
-  }
-
-  return refreshPromise
+  return queueTokenRefresh(refreshAccessTokenOnce)
 }
 
 export function redirectToLogin() {

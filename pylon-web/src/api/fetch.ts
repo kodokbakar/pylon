@@ -17,8 +17,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit) {
     return response
   }
 
-  const retryRequest = withAuthorization(retrySource, nextToken)
-  const retryResponse = await window.fetch(retryRequest)
+  const retryResponse = await window.fetch(withAuthorization(retrySource, nextToken))
 
   if (retryResponse.status === 401) {
     removeAuthSession()
