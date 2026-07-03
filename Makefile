@@ -21,6 +21,9 @@ dev-down: ## Stop local development environment
 dev-logs: ## Show logs from development environment
 	docker compose logs -f
 
+docker-build-web: ## Build Pylon Web Docker image
+	docker build -f pylon-web/Dockerfile -t pylon-web:local pylon-web
+
 # Proto
 proto: ## Generate protobuf code
 	cd proto && buf generate --template buf.gen.yaml
