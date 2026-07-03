@@ -18,6 +18,7 @@ export type UseWebSocketResult = {
   error: string | null
   reconnectAttempt: number
   maxReconnectAttempts: number
+  nextReconnectDelayMs: number | null
   lastMessage: WebSocketMessage | null
   isConnected: boolean
   send: (message: WebSocketMessage) => boolean
@@ -34,6 +35,7 @@ export function useWebSocket({ token, enabled }: UseWebSocketOptions): UseWebSoc
   const [state, setState] = useState<WebSocketConnectionState>('disconnected')
   const [error, setError] = useState<string | null>(null)
   const [reconnectAttempt, setReconnectAttempt] = useState(0)
+  const [nextReconnectDelayMs, setNextReconnectDelayMs] = useState<number | null>(null)
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null)
 
   useEffect(() => {
@@ -53,7 +55,23 @@ export function useWebSocket({ token, enabled }: UseWebSocketOptions): UseWebSoc
       onStateChange: (snapshot) => {
         setState(snapshot.state)
         setReconnectAttempt(snapshot.reconnectAttempt)
-        setError(snapshot.error)
+        setNextReconnectDelayMs(snapshot.nextReconnectDelayMs)
+
+        setError((currentError) => {
+          if (snapshot.error) {
+            return snapshot.error
+          }
+
+          if (
+            snapshot.state === 'connected' ||
+            snapshot.state === 'connecting' ||
+            snapshot.state === 'disconnected'
+          ) {
+            return null
+          }
+
+          return currentError
+        })
 
         if (snapshot.state === 'disconnected') {
           setLastMessage(null)
@@ -100,6 +118,7 @@ export function useWebSocket({ token, enabled }: UseWebSocketOptions): UseWebSoc
     error,
     reconnectAttempt,
     maxReconnectAttempts,
+    nextReconnectDelayMs,
     lastMessage,
     isConnected: state === 'connected',
     send,
