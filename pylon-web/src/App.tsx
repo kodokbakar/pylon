@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactNode } from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Outlet, RouterProvider, useLocation } from 'react-router-dom'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AppLayout } from './components/layout/AppLayout'
@@ -8,6 +8,7 @@ import { WebSocketProvider } from './context/WebSocketContext'
 import { useAuth } from './hooks/useAuth'
 import { ChatPage } from './pages/ChatPage'
 import { HomePage } from './pages/HomePage'
+import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/Login'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/Register'
@@ -16,6 +17,38 @@ import { ProtectedRoute } from './routes/ProtectedRoute'
 import { PublicRoute } from './routes/PublicRoute'
 
 const router = createBrowserRouter([
+  {
+    path: '/',
+    element: withRouteBoundary(<RootRoute />, 'Route crashed'),
+    children: [
+      {
+        element: <ProtectedRoute />,
+        children: [
+          {
+            element: <AppLayout />,
+            children: [
+              {
+                index: true,
+                element: withRouteBoundary(<HomePage />, 'Home crashed'),
+              },
+              {
+                path: 'rooms/:roomId',
+                element: withRouteBoundary(<RoomDetailPage />, 'Room crashed'),
+              },
+              {
+                path: 'rooms/:roomId/chat',
+                element: withRouteBoundary(<ChatPage />, 'Chat crashed'),
+              },
+              {
+                path: '*',
+                element: withRouteBoundary(<NotFoundPage />, 'Route crashed'),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
   {
     element: <PublicRoute />,
     children: [
@@ -26,32 +59,6 @@ const router = createBrowserRouter([
       {
         path: '/register',
         element: withRouteBoundary(<RegisterPage />, 'Register crashed'),
-      },
-    ],
-  },
-  {
-    element: <ProtectedRoute />,
-    children: [
-      {
-        element: <AppLayout />,
-        children: [
-          {
-            path: '/',
-            element: withRouteBoundary(<HomePage />, 'Home crashed'),
-          },
-          {
-            path: '/rooms/:roomId',
-            element: withRouteBoundary(<RoomDetailPage />, 'Room crashed'),
-          },
-          {
-            path: '/rooms/:roomId/chat',
-            element: withRouteBoundary(<ChatPage />, 'Chat crashed'),
-          },
-          {
-            path: '*',
-            element: withRouteBoundary(<NotFoundPage />, 'Route crashed'),
-          },
-        ],
       },
     ],
   },
@@ -75,6 +82,17 @@ export default function App() {
       </WebSocketProvider>
     </ErrorBoundary>
   )
+}
+
+function RootRoute() {
+  const { isAuthenticated } = useAuth()
+  const location = useLocation()
+
+  if (!isAuthenticated && location.pathname === '/') {
+    return <LandingPage />
+  }
+
+  return <Outlet />
 }
 
 function PresenceProviderScope({ children }: PropsWithChildren) {

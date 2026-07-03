@@ -3,39 +3,39 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { render, screen } from '@testing-library/react'
 
 import { AuthProvider } from '../../context/AuthContext'
-import { ProtectedRoute } from '../ProtectedRoute'
 import type { StoredAuthUser } from '../../utils/authToken'
+import { PublicRoute } from '../PublicRoute'
 
-describe('ProtectedRoute', () => {
-  it('redirects to the public root when no auth token exists', async () => {
-    renderProtectedRoute('/secret')
+describe('PublicRoute', () => {
+  it('renders public children when unauthenticated', () => {
+    renderPublicRoute('/login')
 
-    expect(await screen.findByText('Landing page')).toBeInTheDocument()
-    expect(screen.queryByText('Protected content')).not.toBeInTheDocument()
+    expect(screen.getByText('Login page')).toBeInTheDocument()
+    expect(screen.queryByText('Protected home')).not.toBeInTheDocument()
   })
 
-  it('renders protected children when auth token exists', () => {
+  it('redirects authenticated users back to root', async () => {
     window.localStorage.setItem('auth_token', 'access-token')
     window.localStorage.setItem('refresh_token', 'refresh-token')
     window.localStorage.setItem('auth_user', JSON.stringify(testUser))
 
-    renderProtectedRoute('/secret')
+    renderPublicRoute('/login')
 
-    expect(screen.getByText('Protected content')).toBeInTheDocument()
-    expect(screen.queryByText('Landing page')).not.toBeInTheDocument()
+    expect(await screen.findByText('Protected home')).toBeInTheDocument()
+    expect(screen.queryByText('Login page')).not.toBeInTheDocument()
   })
 })
 
-function renderProtectedRoute(route: string) {
+function renderPublicRoute(route: string) {
   return render(
     <MemoryRouter initialEntries={[route]}>
       <AuthProvider>
         <Routes>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/secret" element={<div>Protected content</div>} />
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<div>Login page</div>} />
           </Route>
 
-          <Route path="/" element={<div>Landing page</div>} />
+          <Route path="/" element={<div>Protected home</div>} />
         </Routes>
       </AuthProvider>
     </MemoryRouter>,
