@@ -271,6 +271,7 @@ function createMockWebSocket(): MockWebSocket {
     error: null,
     reconnectAttempt: 0,
     maxReconnectAttempts: 10,
+    nextReconnectDelayMs: null,
     lastMessage: null,
     isConnected: true,
     send: vi.fn(() => true),

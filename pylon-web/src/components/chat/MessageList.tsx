@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { ChatMessage } from '../../hooks/useChatMessages'
+import { Skeleton } from '../ui/Skeleton'
 import { MessageItem } from './MessageItem'
 
 type MessageListProps = {
@@ -145,10 +146,10 @@ function MessageListSkeleton() {
     >
       {Array.from({ length: 8 }, (_, index) => (
         <div className="grid grid-cols-[2.75rem_1fr] gap-3 py-3" key={index}>
-          <div className="size-11 animate-pulse border-2 border-[var(--color-line)] bg-[var(--color-grid)]" />
+          <Skeleton className="size-11 border-2" />
           <div>
-            <div className="h-3 w-32 animate-pulse bg-[var(--color-grid)]" />
-            <div className="mt-3 h-12 w-4/5 animate-pulse bg-[var(--color-grid)]" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="mt-3 h-12 w-4/5" />
           </div>
         </div>
       ))}

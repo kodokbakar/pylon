@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 
+import { useWebSocketContext } from '../../context/webSocketContext'
 import { useAuth } from '../../hooks/useAuth'
 import { getInitial } from '../../utils/format'
 import { RoomList } from '../room/RoomList'
+import { ConnectionStatus } from '../ui/ConnectionStatus'
 
 type SidebarProps = {
   isOpen: boolean
@@ -13,6 +15,7 @@ type SidebarProps = {
 export function Sidebar({ isOpen, onClose, onRoomSelect }: SidebarProps) {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
+  const webSocket = useWebSocketContext()
 
   const displayName = userDisplayName(user)
   const username = user?.username.trim() || user?.email.trim() || 'operator'
@@ -50,6 +53,14 @@ export function Sidebar({ isOpen, onClose, onRoomSelect }: SidebarProps) {
             X
           </button>
         </div>
+
+        <ConnectionStatus
+          className="mt-4 w-full justify-between"
+          maxReconnectAttempts={webSocket.maxReconnectAttempts}
+          nextReconnectDelayMs={webSocket.nextReconnectDelayMs}
+          reconnectAttempt={webSocket.reconnectAttempt}
+          state={webSocket.state}
+        />
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

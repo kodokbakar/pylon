@@ -1,52 +1,58 @@
 services:
-  # PostgreSQL
   postgres:
     image: postgres:17-alpine
     container_name: pylon-postgres
     environment:
-      POSTGRES_USER: pylon
-      POSTGRES_PASSWORD: pylon_dev
-      POSTGRES_DB: pylon
+      POSTGRES_USER: ${POSTGRES_USER:-pylon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pylon_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-pylon}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pylon-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pylon"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-pylon} -d ${POSTGRES_DB:-pylon}",
+        ]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-  # Redis
   redis:
     image: redis:7-alpine
     container_name: pylon-redis
     ports:
-      - "6380:6379"
+      - "${REDIS_PORT:-6380}:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - pylon-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-  # Zookeeper (required by Kafka)
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
     container_name: pylon-zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT:-2181}:2181"
+    networks:
+      - pylon-net
     healthcheck:
-      test: ["CMD-SHELL", "cub zk-ready localhost 2181"]
+      test: ["CMD-SHELL", "cub zk-ready localhost 2181 10"]
       interval: 10s
       timeout: 10s
       retries: 10
-    ports:
-      - "2181:2181"
 
-  # Kafka
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     container_name: pylon-kafka
@@ -54,16 +60,20 @@ services:
       zookeeper:
         condition: service_healthy
     ports:
-      - "9092:9092"
-      - "9093:9093"
+      - "${KAFKA_PORT:-9092}:9092"
+      - "${KAFKA_INTERNAL_PORT:-9093}:9093"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:${KAFKA_PORT:-9092}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - pylon-net
     healthcheck:
       test:
         [
@@ -74,9 +84,8 @@ services:
         ]
       interval: 10s
       timeout: 10s
-      retries: 10
+      retries: 15
 
-  # Kafka UI (optional, for debugging)
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: pylon-kafka-ui
@@ -84,19 +93,23 @@ services:
       kafka:
         condition: service_healthy
     ports:
-      - "8085:8080"
+      - "${KAFKA_UI_PORT:-8085}:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: pylon
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    networks:
+      - pylon-net
 
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     container_name: pylon-jaeger
     ports:
-      - "16686:16686"
+      - "${JAEGER_UI_PORT:-16686}:16686"
       - "4317"
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - pylon-net
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.111.0
@@ -108,9 +121,27 @@ services:
     volumes:
       - ./deploy/jaeger/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
     ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "13133:13133"
+      - "${OTEL_GRPC_PORT:-4317}:4317"
+      - "${OTEL_HTTP_PORT:-4318}:4318"
+      - "${OTEL_HEALTH_PORT:-13133}:13133"
+    networks:
+      - pylon-net
+
+  migrate:
+    image: migrate/migrate:v4.18.3
+    container_name: pylon-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://${POSTGRES_USER:-pylon}:${POSTGRES_PASSWORD:-pylon_dev}@postgres:5432/${POSTGRES_DB:-pylon}?sslmode=disable"
+      - "up"
+    networks:
+      - pylon-net
+    restart: "no"
 
   chat-service:
     build:
@@ -124,17 +155,33 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       otel-collector:
         condition: service_started
     ports:
-      - "9001:9001"
+      - "${CHAT_SERVICE_PORT:-9001}:9001"
     environment:
       APP_ENV: development
       APP_PORT: "9001"
-      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      GRPC_PORT: "9001"
+      DATABASE_URL: postgres://${POSTGRES_USER:-pylon}:${POSTGRES_PASSWORD:-pylon_dev}@postgres:5432/${POSTGRES_DB:-pylon}?sslmode=disable
       KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: pylon
       OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_TRACING_ENABLED: "true"
+    networks:
+      - pylon-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:9001/health >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   presence-service:
     build:
@@ -149,13 +196,26 @@ services:
       otel-collector:
         condition: service_started
     ports:
-      - "9002:9002"
+      - "${PRESENCE_SERVICE_PORT:-9002}:9002"
     environment:
       APP_ENV: development
       APP_PORT: "9002"
+      PRESENCE_GRPC_PORT: "9002"
       REDIS_URL: redis://redis:6379/0
       OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_TRACING_ENABLED: "true"
+    networks:
+      - pylon-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:9002/ready >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   room-service:
     build:
@@ -167,16 +227,31 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       otel-collector:
         condition: service_started
     ports:
-      - "9003:9003"
+      - "${ROOM_SERVICE_PORT:-9003}:9003"
     environment:
       APP_ENV: development
       APP_PORT: "9003"
-      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      ROOM_GRPC_PORT: "9003"
+      DATABASE_URL: postgres://${POSTGRES_USER:-pylon}:${POSTGRES_PASSWORD:-pylon_dev}@postgres:5432/${POSTGRES_DB:-pylon}?sslmode=disable
       OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_TRACING_ENABLED: "true"
+    networks:
+      - pylon-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:9003/ready >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   notification-service:
     build:
@@ -190,17 +265,36 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      room-service:
+        condition: service_healthy
       otel-collector:
         condition: service_started
     ports:
-      - "9004:9004"
+      - "${NOTIFICATION_SERVICE_PORT:-9004}:9004"
     environment:
       APP_ENV: development
       APP_PORT: "9004"
-      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      NOTIFICATION_GRPC_PORT: "9004"
+      DATABASE_URL: postgres://${POSTGRES_USER:-pylon}:${POSTGRES_PASSWORD:-pylon_dev}@postgres:5432/${POSTGRES_DB:-pylon}?sslmode=disable
       KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: pylon
+      ROOM_SERVICE_URL: http://room-service:9003
       OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_TRACING_ENABLED: "true"
+    networks:
+      - pylon-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:9004/ready >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   api-gateway:
     build:
@@ -214,30 +308,75 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       chat-service:
-        condition: service_started
+        condition: service_healthy
       presence-service:
-        condition: service_started
+        condition: service_healthy
       room-service:
-        condition: service_started
+        condition: service_healthy
       notification-service:
-        condition: service_started
+        condition: service_healthy
       otel-collector:
         condition: service_started
     ports:
-      - "8080:8080"
+      - "${API_GATEWAY_PORT:-8080}:8080"
     environment:
       APP_ENV: development
       APP_PORT: "8080"
-      DATABASE_URL: postgres://pylon:pylon_dev@postgres:5432/pylon?sslmode=disable
+      APP_LOG_LEVEL: debug
+      CORS_ORIGINS: http://localhost:${PYLON_WEB_PORT:-3000},http://127.0.0.1:${PYLON_WEB_PORT:-3000},http://localhost:5173,http://127.0.0.1:5173
+      DATABASE_URL: postgres://${POSTGRES_USER:-pylon}:${POSTGRES_PASSWORD:-pylon_dev}@postgres:5432/${POSTGRES_DB:-pylon}?sslmode=disable
       REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: pylon-dev-secret-change-me
+      JWT_SECRET: ${JWT_SECRET:-pylon-dev-secret-change-me}
+      JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-168h}
       CHAT_SERVICE_URL: http://chat-service:9001
       PRESENCE_SERVICE_URL: http://presence-service:9002
       ROOM_SERVICE_URL: http://room-service:9003
       NOTIFICATION_SERVICE_URL: http://notification-service:9004
       OTEL_EXPORTER_OTLP_ENDPOINT: otel-collector:4317
       OTEL_TRACING_ENABLED: "true"
+    networks:
+      - pylon-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8080/health >/dev/null || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  pylon-web:
+    build:
+      context: ./pylon-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${PYLON_WEB_API_URL:-http://localhost:8080}
+    image: pylon-web:local
+    container_name: pylon-web
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    ports:
+      - "${PYLON_WEB_PORT:-3000}:80"
+    networks:
+      - pylon-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+networks:
+  pylon-net:
+    name: pylon-net
+    driver: bridge
 
 volumes:
   postgres_data:

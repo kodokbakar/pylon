@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
+import { useRoomPresence } from '../../hooks/useRoomPresence'
 import { useRooms } from '../../hooks/useRooms'
+import { Skeleton } from '../ui/Skeleton'
 import { CreateRoomModal } from './CreateRoomModal'
 import { RoomItem } from './RoomItem'
-import { useRoomPresence } from '../../hooks/useRoomPresence'
 
 type RoomListProps = {
   onRoomSelect?: () => void
@@ -35,9 +36,13 @@ export function RoomList({ onRoomSelect }: RoomListProps) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <span className="border border-[var(--color-ink)] px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.16em]">
-            {rooms.length}
-          </span>
+          {isLoading ? (
+            <Skeleton className="h-6 w-8" />
+          ) : (
+            <span className="border border-[var(--color-ink)] px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.16em]">
+              {rooms.length}
+            </span>
+          )}
 
           <button
             className="border-2 border-[var(--color-ink)] px-3 py-2 font-mono text-[0.65rem] uppercase tracking-[0.16em] transition-transform duration-200 hover:-translate-y-1 hover:bg-[var(--color-accent)] hover:text-[var(--color-paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
@@ -130,12 +135,12 @@ function RoomListSkeleton() {
     <div aria-label="Loading rooms" className="divide-y divide-[var(--color-line)]">
       {Array.from({ length: 5 }, (_, index) => (
         <div className="grid grid-cols-[3rem_1fr_auto] gap-3 px-3 py-4" key={index}>
-          <div className="size-12 animate-pulse border-2 border-[var(--color-line)] bg-[var(--color-grid)]" />
+          <Skeleton className="size-12 border-2" />
           <div className="space-y-3 py-1">
-            <div className="h-4 w-3/4 animate-pulse bg-[var(--color-grid)]" />
-            <div className="h-3 w-1/2 animate-pulse bg-[var(--color-grid)]" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
           </div>
-          <div className="h-3 w-10 animate-pulse bg-[var(--color-grid)]" />
+          <Skeleton className="h-3 w-10" />
         </div>
       ))}
     </div>

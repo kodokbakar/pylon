@@ -13,6 +13,7 @@ export type WebSocketMessage = {
 export type WebSocketStateSnapshot = {
   state: WebSocketConnectionState
   reconnectAttempt: number
+  nextReconnectDelayMs: number | null
   error: string | null
 }
 
@@ -53,11 +54,13 @@ export class PylonWebSocketClient {
 
   connect() {
     this.manualClose = false
+    this.reconnectAttempt = 0
     this.openSocket(false)
   }
 
   disconnect() {
     this.manualClose = true
+    this.reconnectAttempt = 0
     this.clearReconnectTimer()
     this.clearHeartbeatTimers()
 
@@ -211,9 +214,10 @@ export class PylonWebSocketClient {
     }
 
     this.reconnectAttempt += 1
-    this.emitState('reconnecting', null)
 
     const delayMs = this.getReconnectDelayMs(this.reconnectAttempt)
+    this.emitState('reconnecting', null, delayMs)
+
     this.reconnectTimer = window.setTimeout(() => {
       this.openSocket(true)
     }, delayMs)
@@ -265,10 +269,15 @@ export class PylonWebSocketClient {
     this.pongTimeoutTimer = null
   }
 
-  private emitState(state: WebSocketConnectionState, error: string | null) {
+  private emitState(
+    state: WebSocketConnectionState,
+    error: string | null,
+    nextReconnectDelayMs: number | null = null,
+  ) {
     this.options.onStateChange?.({
       state,
       reconnectAttempt: this.reconnectAttempt,
+      nextReconnectDelayMs,
       error,
     })
   }
