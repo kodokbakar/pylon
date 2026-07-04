@@ -178,7 +178,7 @@ export function LoginPage() {
               Access terminal
             </p>
 
-            <h1 className="max-w-4xl text-[clamp(4rem,14vw,10rem)] font-black uppercase leading-[0.84] tracking-[-0.08em]">
+            <h1 className="max-w-4xl break-words text-[clamp(3.2rem,14vw,10rem)] font-black uppercase leading-[0.84] tracking-[-0.08em]">
               Login
             </h1>
 

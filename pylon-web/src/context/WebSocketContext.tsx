@@ -36,7 +36,7 @@ function WebSocketErrorBanner({ webSocket }: { webSocket: UseWebSocketResult }) 
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-50 max-w-sm border-2 border-[var(--color-accent)] bg-[var(--color-paper)] px-4 py-3 shadow-[6px_6px_0_var(--color-ink)]"
+      className="fixed bottom-4 left-4 right-4 z-50 border-2 border-[var(--color-accent)] bg-[var(--color-paper)] px-4 py-3 shadow-[6px_6px_0_var(--color-ink)] sm:left-auto sm:max-w-sm"
       role="alert"
     >
       <div className="flex items-start justify-between gap-4">

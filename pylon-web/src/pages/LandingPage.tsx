@@ -72,7 +72,7 @@ export function LandingPage() {
               Distributed chat control plane
             </p>
 
-            <h1 className="max-w-6xl text-[clamp(5rem,18vw,15rem)] font-black uppercase leading-[0.78] tracking-[-0.1em]">
+            <h1 className="max-w-6xl break-words text-[clamp(4rem,18vw,15rem)] font-black uppercase leading-[0.78] tracking-[-0.1em]">
               Pylon
             </h1>
 
@@ -128,7 +128,7 @@ export function LandingPage() {
         </section>
 
         <section className="col-span-12 py-14 lg:py-20" aria-labelledby="cta-title">
-          <div className="grid grid-cols-12 gap-4 border-2 border-[var(--color-ink)] px-5 py-6 shadow-[10px_10px_0_var(--color-ink)]">
+          <div className="grid grid-cols-12 gap-4 border-2 border-[var(--color-ink)] px-5 py-6 shadow-[6px_6px_0_var(--color-ink)] sm:shadow-[10px_10px_0_var(--color-ink)]">
             <div className="col-span-12 lg:col-span-7">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-[var(--color-muted)]">
                 Access terminal

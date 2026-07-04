@@ -28,7 +28,11 @@ export function MessageItem({ message, isOwnMessage, isGroupedWithPrevious }: Me
         {!isGroupedWithPrevious ? (
           <div className="flex size-11 items-center justify-center overflow-hidden border-2 border-[var(--color-ink)] bg-[var(--color-grid)] font-mono text-sm font-black uppercase">
             {message.senderAvatarUrl ? (
-              <img alt="" className="size-full object-cover" src={message.senderAvatarUrl} />
+              <img
+                alt={`${message.senderName} avatar`}
+                className="size-full object-cover"
+                src={message.senderAvatarUrl}
+              />
             ) : (
               getInitial(message.senderName)
             )}

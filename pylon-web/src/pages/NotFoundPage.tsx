@@ -15,7 +15,7 @@ export function NotFoundPage() {
             404
           </p>
 
-          <h1 className="max-w-5xl text-[clamp(4rem,15vw,11rem)] font-black uppercase leading-[0.82] tracking-[-0.09em]">
+          <h1 className="max-w-5xl break-words text-[clamp(3.2rem,15vw,11rem)] font-black uppercase leading-[0.82] tracking-[-0.09em]">
             No route
           </h1>
 

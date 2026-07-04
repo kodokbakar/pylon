@@ -174,7 +174,7 @@ export function RegisterPage() {
               New operator
             </p>
 
-            <h1 className="max-w-4xl text-[clamp(4rem,14vw,10rem)] font-black uppercase leading-[0.84] tracking-[-0.08em]">
+            <h1 className="max-w-4xl break-words text-[clamp(3rem,14vw,10rem)] font-black uppercase leading-[0.84] tracking-[-0.08em]">
               Register
             </h1>
 

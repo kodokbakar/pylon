@@ -8,11 +8,12 @@ import { ConnectionStatus } from '../ui/ConnectionStatus'
 
 type SidebarProps = {
   isOpen: boolean
+  isMobile: boolean
   onClose: () => void
   onRoomSelect: () => void
 }
 
-export function Sidebar({ isOpen, onClose, onRoomSelect }: SidebarProps) {
+export function Sidebar({ isOpen, isMobile, onClose, onRoomSelect }: SidebarProps) {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
   const webSocket = useWebSocketContext()
@@ -28,10 +29,12 @@ export function Sidebar({ isOpen, onClose, onRoomSelect }: SidebarProps) {
 
   return (
     <aside
+      aria-hidden={isMobile && !isOpen ? true : undefined}
       aria-label="Primary chat navigation"
       className={`fixed inset-y-0 left-0 z-50 flex w-full flex-col border-r-2 border-[var(--color-ink)] bg-[var(--color-paper)] shadow-[10px_0_0_var(--color-ink)] transition-transform duration-200 md:w-[280px] md:translate-x-0 md:shadow-none ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
+      inert={isMobile && !isOpen ? true : undefined}
     >
       <header className="border-b-2 border-[var(--color-ink)] px-4 py-4">
         <div className="flex items-start justify-between gap-3">
@@ -71,7 +74,11 @@ export function Sidebar({ isOpen, onClose, onRoomSelect }: SidebarProps) {
         <div className="grid grid-cols-[2.75rem_1fr] gap-3">
           <div className="flex size-11 items-center justify-center overflow-hidden border-2 border-[var(--color-ink)] font-mono text-sm font-black uppercase">
             {user?.avatarUrl ? (
-              <img alt="" className="size-full object-cover" src={user.avatarUrl} />
+              <img
+                alt={`${displayName} avatar`}
+                className="size-full object-cover"
+                src={user.avatarUrl}
+              />
             ) : (
               getInitial(displayName)
             )}

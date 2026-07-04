@@ -127,6 +127,7 @@ export function CreateRoomModal({ isOpen, existingRoomNames, onClose }: CreateRo
 
   return (
     <div
+      aria-describedby={descriptionId}
       aria-labelledby={titleId}
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--color-ink)_72%,transparent)] px-4 py-6"
@@ -138,7 +139,7 @@ export function CreateRoomModal({ isOpen, existingRoomNames, onClose }: CreateRo
       }}
     >
       <div
-        className="w-full max-w-xl border-2 border-[var(--color-ink)] bg-[var(--color-paper)] shadow-[10px_10px_0_var(--color-ink)]"
+        className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto border-2 border-[var(--color-ink)] bg-[var(--color-paper)] shadow-[10px_10px_0_var(--color-ink)]"
         ref={dialogRef}
         tabIndex={-1}
       >

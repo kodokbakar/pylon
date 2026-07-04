@@ -59,7 +59,8 @@ export function RoomDetailPage() {
                   Room detail
                 </p>
 
-                <h1 className="text-[clamp(3.8rem,13vw,9rem)] font-black uppercase leading-[0.86] tracking-[-0.08em]">
+                <h1 className="break-words text-[clamp(3rem,13vw,9rem)] font-black uppercase leading-[0.86] tracking-[-0.08em]">
+                  {' '}
                   {roomQuery.room.name || 'Untitled room'}
                 </h1>
 
@@ -152,7 +153,7 @@ export function RoomDetailPage() {
                           <div className="flex size-full items-center justify-center border-2 border-[var(--color-ink)] font-mono text-sm font-black uppercase">
                             {member.avatarUrl ? (
                               <img
-                                alt=""
+                                alt={`${member.name} avatar`}
                                 className="size-full object-cover"
                                 src={member.avatarUrl}
                               />

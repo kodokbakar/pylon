@@ -26,7 +26,7 @@ export function HomePage() {
 
         <h1
           id="page-title"
-          className="max-w-5xl text-[clamp(4rem,15vw,12rem)] font-black uppercase leading-[0.82] tracking-[-0.09em]"
+          className="max-w-5xl break-words text-[clamp(3.2rem,15vw,12rem)] font-black uppercase leading-[0.82] tracking-[-0.09em]"
         >
           Select Room
         </h1>

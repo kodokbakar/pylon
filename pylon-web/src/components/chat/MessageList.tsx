@@ -64,7 +64,7 @@ export function MessageList({
   if (errorMessage) {
     return (
       <div
-        className="flex min-h-[28rem] items-center border-2 border-[var(--color-accent)] px-5 py-6"
+        className="flex min-h-[20rem] items-center border-2 border-[var(--color-accent)] px-5 py-6 sm:min-h-[28rem]"
         role="alert"
       >
         <div>
@@ -80,7 +80,7 @@ export function MessageList({
   return (
     <section className="relative border-2 border-[var(--color-ink)]" aria-label="Chat messages">
       <div
-        className="max-h-[62vh] min-h-[28rem] overflow-y-auto px-4 py-4"
+        className="max-h-[58vh] min-h-[20rem] overflow-y-auto px-4 py-4 sm:max-h-[62vh] sm:min-h-[28rem]"
         ref={scrollContainerRef}
         onScroll={handleScroll}
       >
@@ -98,7 +98,7 @@ export function MessageList({
         ) : null}
 
         {messages.length === 0 ? (
-          <div className="flex min-h-[24rem] items-center justify-center text-center">
+          <div className="flex min-h-[18rem] items-center justify-center text-center sm:min-h-[24rem]">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.24em] text-[var(--color-muted)]">
                 Empty room
@@ -124,7 +124,8 @@ export function MessageList({
 
       {!isNearBottom ? (
         <button
-          className="absolute bottom-4 right-4 border-2 border-[var(--color-ink)] bg-[var(--color-paper)] px-4 py-3 font-mono text-xs uppercase tracking-[0.18em] shadow-[5px_5px_0_var(--color-ink)] transition-transform duration-200 hover:-translate-y-1 hover:bg-[var(--color-accent)] hover:text-[var(--color-paper)]"
+          aria-label="Jump to latest message"
+          className="absolute bottom-4 right-4 border-2 border-[var(--color-ink)] bg-[var(--color-paper)] px-4 py-3 font-mono text-xs uppercase tracking-[0.18em] shadow-[5px_5px_0_var(--color-ink)] transition-transform duration-200 hover:-translate-y-1 hover:bg-[var(--color-accent)] hover:text-[var(--color-paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
           type="button"
           onClick={() => {
             shouldStickToBottomRef.current = true
@@ -142,7 +143,7 @@ function MessageListSkeleton() {
   return (
     <div
       aria-label="Loading messages"
-      className="min-h-[28rem] border-2 border-[var(--color-ink)] px-4 py-5"
+      className="min-h-[20rem] border-2 border-[var(--color-ink)] px-4 py-5 sm:min-h-[28rem]"
     >
       {Array.from({ length: 8 }, (_, index) => (
         <div className="grid grid-cols-[2.75rem_1fr] gap-3 py-3" key={index}>

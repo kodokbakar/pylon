@@ -10,7 +10,6 @@ type MessageInputProps = {
 }
 
 const typingDebounceMs = 2_000
-
 const maxMessageLength = 10_000
 
 export function MessageInput({
@@ -61,9 +60,16 @@ export function MessageInput({
 
   const isContentEmpty = content.trim().length === 0
   const isTooLong = content.length > maxMessageLength
+  const descriptionIds = ['chat-message-counter', isTooLong ? 'chat-message-length-error' : '']
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <form className="border-x-2 border-b-2 border-[var(--color-ink)]" onSubmit={handleSubmit}>
+    <form
+      aria-label="Send message"
+      className="border-x-2 border-b-2 border-[var(--color-ink)]"
+      onSubmit={handleSubmit}
+    >
       {sendError ? (
         <div
           className="border-b-2 border-[var(--color-accent)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-accent)]"
@@ -79,6 +85,8 @@ export function MessageInput({
         </label>
 
         <textarea
+          aria-describedby={descriptionIds}
+          aria-invalid={isTooLong}
           className="min-h-28 resize-none bg-transparent px-4 py-4 text-base font-semibold leading-6 outline-none placeholder:text-[var(--color-muted)] focus:bg-[var(--color-grid)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
           disabled={disabled}
           id="chat-message-input"
@@ -89,13 +97,17 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
         />
 
-        <div className="flex items-end justify-between gap-3 border-t-2 border-[var(--color-ink)] p-3 lg:block lg:border-l-2 lg:border-t-0">
-          <p className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--color-muted)]">
+        <div className="flex flex-col gap-3 border-t-2 border-[var(--color-ink)] p-3 sm:flex-row sm:items-end sm:justify-between lg:block lg:border-l-2 lg:border-t-0">
+          <p
+            aria-live="polite"
+            className="font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--color-muted)]"
+            id="chat-message-counter"
+          >
             Enter sends · Shift+Enter newline · {content.length}/{maxMessageLength}
           </p>
 
           <button
-            className="mt-3 inline-flex min-w-36 items-center justify-between border-2 border-[var(--color-ink)] bg-[var(--color-ink)] px-5 py-4 font-mono text-xs uppercase tracking-[0.22em] text-[var(--color-paper)] transition-transform duration-200 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+            className="mt-0 inline-flex min-w-36 items-center justify-between border-2 border-[var(--color-ink)] bg-[var(--color-ink)] px-5 py-4 font-mono text-xs uppercase tracking-[0.22em] text-[var(--color-paper)] transition-transform duration-200 hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 lg:mt-3"
             disabled={disabled || isContentEmpty || isTooLong}
             type="submit"
           >
@@ -106,7 +118,11 @@ export function MessageInput({
       </div>
 
       {isTooLong ? (
-        <p className="border-t-2 border-[var(--color-accent)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-accent)]">
+        <p
+          className="border-t-2 border-[var(--color-accent)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-accent)]"
+          id="chat-message-length-error"
+          role="alert"
+        >
           Message is too long.
         </p>
       ) : null}
