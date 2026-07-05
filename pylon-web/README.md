@@ -86,14 +86,14 @@ pylon/
 From the monorepo root:
 
 ```fish
-cd /home/dokbakar/Projects/pylon
+cd pylon
 cp .env.example .env
 ```
 
 Install frontend dependencies:
 
 ```fish
-cd /home/dokbakar/Projects/pylon/pylon-web
+cd pylon-web
 bun install
 ```
 
@@ -141,7 +141,7 @@ The root `.env.example` controls local compose ports and service credentials.
 Start only the frontend dev server:
 
 ```fish
-cd /home/dokbakar/Projects/pylon/pylon-web
+cd pylon-web
 bun run dev
 ```
 
@@ -154,7 +154,7 @@ http://localhost:5173
 Start the full stack with Docker Compose from the monorepo root:
 
 ```fish
-cd /home/dokbakar/Projects/pylon
+cd pylon
 docker compose up --build
 ```
 
@@ -230,7 +230,7 @@ Regenerate frontend protobuf and Connect-RPC client code from the monorepo `prot
 Before opening a PR or closing an issue, run:
 
 ```fish
-cd /home/dokbakar/Projects/pylon/pylon-web
+cd pylon-web
 
 bun run format
 bun run lint
@@ -242,7 +242,7 @@ bun run format:check
 For full-stack regression from the monorepo root:
 
 ```fish
-cd /home/dokbakar/Projects/pylon
+cd pylon
 
 go fmt ./...
 go test ./...
@@ -290,22 +290,43 @@ src/
     transport.ts
     fetch.ts
     config.ts
+    authRefresh.ts
     gen/
       pylon/
-        auth/
-        room/
-        presence/
+        auth/v1/
+        room/v1/
+        presence/v1/
+
+  assets/
 
   components/
+    ErrorBoundary.tsx
     chat/
+      MessageInput.tsx
+      MessageItem.tsx
+      MessageList.tsx
     layout/
+      AppLayout.tsx
+      ChatLayout.tsx
+      PageHeader.tsx
+      Sidebar.tsx
     presence/
+      StatusIndicator.tsx
+      TypingIndicator.tsx
     room/
+      CreateRoomModal.tsx
+      RoomItem.tsx
+      RoomList.tsx
     ui/
+      ConnectionStatus.tsx
+      Skeleton.tsx
 
   context/
+    authContext.ts
     AuthContext.tsx
+    presenceContext.ts
     PresenceContext.tsx
+    webSocketContext.ts
     WebSocketContext.tsx
 
   hooks/
@@ -315,6 +336,17 @@ src/
     useChatMessages.ts
     useRoomPresence.ts
     useWebSocket.ts
+    useCreateRoom.ts
+    useDocumentTitle.ts
+    useLeaveRoom.ts
+    usePresence.ts
+    useRoomMembers.ts
+    useSidebar.ts
+    useStreamPresence.ts
+
+  lib/
+    queryClient.ts
+    ws.ts
 
   pages/
     LandingPage.tsx
@@ -339,6 +371,7 @@ src/
     backendError.ts
     format.ts
     object.ts
+    tokenRefresh.ts
 ```
 
 ## Key Flows
@@ -426,7 +459,7 @@ src/test/mocks/
 Run all frontend tests:
 
 ```fish
-cd /home/dokbakar/Projects/pylon/pylon-web
+cd pylon-web
 bun run test:run
 ```
 
@@ -440,7 +473,7 @@ Pylon Web has a production multi-stage Dockerfile:
 Build the frontend image:
 
 ```fish
-cd /home/dokbakar/Projects/pylon/pylon-web
+cd pylon-web
 
 docker build \
   --build-arg VITE_API_URL=http://localhost:8080 \
@@ -485,7 +518,7 @@ nginx.conf
 From the monorepo root:
 
 ```fish
-cd /home/dokbakar/Projects/pylon
+cd pylon
 docker compose up --build
 ```
 
@@ -597,7 +630,7 @@ Recommended workflow:
 Frontend verification:
 
 ```fish
-cd /home/dokbakar/Projects/pylon/pylon-web
+cd pylon-web
 
 bun run format
 bun run lint
