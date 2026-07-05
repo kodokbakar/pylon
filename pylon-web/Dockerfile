@@ -15,12 +15,18 @@ RUN bun run build
 
 FROM nginx:alpine AS runtime
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+RUN mkdir -p /tmp/nginx /var/cache/nginx \
+  && chown -R nginx:nginx /tmp/nginx /var/cache/nginx /usr/share/nginx/html \
+  && sed -i 's#pid /var/run/nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf
 
-EXPOSE 80
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
+
+EXPOSE 8080
+
+USER nginx
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://127.0.0.1/ || exit 1
+  CMD wget -qO- http://127.0.0.1:8080/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

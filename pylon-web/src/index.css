@@ -54,6 +54,22 @@ body {
   margin: 0;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+  }
+}
+
 body::selection {
   color: var(--color-paper);
   background: var(--color-accent);

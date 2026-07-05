@@ -4,7 +4,7 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { useNavigate } from 'react-router-dom'
 
 import { useCreateRoom } from '../../hooks/useCreateRoom'
-import { cleanBackendMessage } from '../../utils/backendError'
+import { sanitizeErrorMessage } from '../../utils/backendError'
 
 type CreateRoomModalProps = {
   isOpen: boolean
@@ -127,6 +127,7 @@ export function CreateRoomModal({ isOpen, existingRoomNames, onClose }: CreateRo
 
   return (
     <div
+      aria-describedby={descriptionId}
       aria-labelledby={titleId}
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--color-ink)_72%,transparent)] px-4 py-6"
@@ -138,7 +139,7 @@ export function CreateRoomModal({ isOpen, existingRoomNames, onClose }: CreateRo
       }}
     >
       <div
-        className="w-full max-w-xl border-2 border-[var(--color-ink)] bg-[var(--color-paper)] shadow-[10px_10px_0_var(--color-ink)]"
+        className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto border-2 border-[var(--color-ink)] bg-[var(--color-paper)] shadow-[10px_10px_0_var(--color-ink)]"
         ref={dialogRef}
         tabIndex={-1}
       >
@@ -313,34 +314,22 @@ function trapFocus(event: KeyboardEvent, dialog: HTMLDivElement | null) {
 }
 
 function mapCreateRoomError(error: unknown) {
-  if (error instanceof Error && !(error instanceof ConnectError)) {
-    return error.message
+  if (!(error instanceof ConnectError)) {
+    return sanitizeErrorMessage(error, 'Failed to create room. Please try again.')
   }
 
-  const connectError = ConnectError.from(error)
-
-  if (connectError.code === Code.InvalidArgument) {
-    return (
-      cleanBackendMessage(connectError.rawMessage || connectError.message) ||
-      'Room input is invalid.'
-    )
+  switch (error.code) {
+    case Code.InvalidArgument:
+      return 'Room input is invalid.'
+    case Code.AlreadyExists:
+      return 'A room with this name already exists.'
+    case Code.Unauthenticated:
+      return 'Your session expired. Please log in again.'
+    case Code.PermissionDenied:
+      return 'You do not have permission to create rooms.'
+    case Code.Unavailable:
+      return 'Room service is unavailable. Please try again.'
+    default:
+      return 'Failed to create room. Please try again.'
   }
-
-  if (connectError.code === Code.AlreadyExists) {
-    return 'A room with this name already exists.'
-  }
-
-  if (connectError.code === Code.Unauthenticated) {
-    return 'Your session expired. Please log in again.'
-  }
-
-  if (connectError.code === Code.PermissionDenied) {
-    return 'You do not have permission to create rooms.'
-  }
-
-  if (connectError.code === Code.Unavailable) {
-    return 'Room service is unavailable. Please try again.'
-  }
-
-  return 'Failed to create room. Please try again.'
 }

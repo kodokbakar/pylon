@@ -4,7 +4,8 @@ const SIDEBAR_STORAGE_KEY = 'sidebar-open'
 const mobileSidebarQuery = '(max-width: 767px)'
 
 export function useSidebar() {
-  const [isOpen, setIsOpen] = useState(readInitialSidebarState)
+  const [isMobile, setIsMobile] = useState(isMobileViewport)
+  const [isOpen, setIsOpen] = useState(() => !isMobileViewport() || readStoredSidebarState())
 
   const open = useCallback(() => {
     writeSidebarState(true)
@@ -12,14 +13,21 @@ export function useSidebar() {
   }, [])
 
   const close = useCallback(() => {
-    writeSidebarState(false)
+    if (isMobileViewport()) {
+      writeSidebarState(false)
+    }
+
     setIsOpen(false)
   }, [])
 
   const toggle = useCallback(() => {
     setIsOpen((current) => {
       const nextValue = !current
-      writeSidebarState(nextValue)
+
+      if (isMobileViewport()) {
+        writeSidebarState(nextValue)
+      }
+
       return nextValue
     })
   }, [])
@@ -31,12 +39,25 @@ export function useSidebar() {
   }, [close])
 
   useEffect(() => {
-    if (!isOpen) {
+    return subscribeToMobileViewport((nextIsMobile) => {
+      setIsMobile(nextIsMobile)
+
+      if (!nextIsMobile) {
+        setIsOpen(true)
+        return
+      }
+
+      setIsOpen(readStoredSidebarState())
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen || !isMobile) {
       return
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape' && isMobileViewport()) {
+      if (event.key === 'Escape') {
         close()
       }
     }
@@ -46,10 +67,11 @@ export function useSidebar() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [close, isOpen])
+  }, [close, isMobile, isOpen])
 
   return {
     isOpen,
+    isMobile,
     open,
     close,
     closeOnMobile,
@@ -57,7 +79,7 @@ export function useSidebar() {
   }
 }
 
-function readInitialSidebarState() {
+function readStoredSidebarState() {
   try {
     return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true'
   } catch {
@@ -75,4 +97,20 @@ function writeSidebarState(isOpen: boolean) {
 
 function isMobileViewport() {
   return window.matchMedia(mobileSidebarQuery).matches
+}
+
+function subscribeToMobileViewport(callback: (isMobile: boolean) => void) {
+  const mediaQueryList = window.matchMedia(mobileSidebarQuery)
+
+  callback(mediaQueryList.matches)
+
+  function handleChange(event: MediaQueryListEvent) {
+    callback(event.matches)
+  }
+
+  mediaQueryList.addEventListener('change', handleChange)
+
+  return () => {
+    mediaQueryList.removeEventListener('change', handleChange)
+  }
 }

@@ -6,6 +6,7 @@ import { useRooms } from '../../hooks/useRooms'
 import { Skeleton } from '../ui/Skeleton'
 import { CreateRoomModal } from './CreateRoomModal'
 import { RoomItem } from './RoomItem'
+import { sanitizeErrorMessage } from '../../utils/backendError'
 
 type RoomListProps = {
   onRoomSelect?: () => void
@@ -67,7 +68,7 @@ export function RoomList({ onRoomSelect }: RoomListProps) {
           </p>
 
           <p className="mt-3 text-sm leading-6 text-[var(--color-muted)]">
-            {error instanceof Error ? error.message : 'Room service is unavailable.'}
+            {sanitizeErrorMessage(error, 'Room service is unavailable. Please try again.')}
           </p>
 
           <button

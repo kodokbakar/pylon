@@ -9,6 +9,7 @@ import { useLeaveRoom } from '../hooks/useLeaveRoom'
 import { useRoom } from '../hooks/useRoom'
 import { useRoomMembers } from '../hooks/useRoomMembers'
 import { formatPresenceStatus, getPresenceStatus, useRoomPresence } from '../hooks/useRoomPresence'
+import { sanitizeErrorMessage } from '../utils/backendError'
 
 export function RoomDetailPage() {
   const navigate = useNavigate()
@@ -59,7 +60,7 @@ export function RoomDetailPage() {
                   Room detail
                 </p>
 
-                <h1 className="text-[clamp(3.8rem,13vw,9rem)] font-black uppercase leading-[0.86] tracking-[-0.08em]">
+                <h1 className="break-words text-[clamp(3rem,13vw,9rem)] font-black uppercase leading-[0.86] tracking-[-0.08em]">
                   {roomQuery.room.name || 'Untitled room'}
                 </h1>
 
@@ -115,9 +116,7 @@ export function RoomDetailPage() {
                 className="mt-5 border-2 border-[var(--color-accent)] px-4 py-3 font-mono text-xs uppercase tracking-[0.16em] text-[var(--color-accent)]"
                 role="alert"
               >
-                {leaveRoom.error instanceof Error
-                  ? leaveRoom.error.message
-                  : 'Failed to leave room.'}
+                {sanitizeErrorMessage(leaveRoom.error, 'Failed to leave room. Please try again.')}
               </div>
             ) : null}
 
@@ -152,7 +151,7 @@ export function RoomDetailPage() {
                           <div className="flex size-full items-center justify-center border-2 border-[var(--color-ink)] font-mono text-sm font-black uppercase">
                             {member.avatarUrl ? (
                               <img
-                                alt=""
+                                alt={`${member.name} avatar`}
                                 className="size-full object-cover"
                                 src={member.avatarUrl}
                               />
@@ -331,7 +330,7 @@ function getAccessError(error: unknown) {
   return {
     label: 'Room error',
     title: 'Unavailable',
-    message: connectError.rawMessage || connectError.message || 'Room detail could not be loaded.',
+    message: sanitizeErrorMessage(error, 'Room detail could not be loaded. Please try again.'),
   }
 }
 

@@ -153,7 +153,7 @@ describe('useChatMessages', () => {
     renderUseChatMessages()
 
     await waitFor(() => {
-      expect(screen.getByTestId('error-message')).toHaveTextContent('History failed')
+      expect(screen.getByTestId('error-message')).toHaveTextContent('Messages could not be loaded. Please try again.')
     })
   })
 

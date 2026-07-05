@@ -7,17 +7,20 @@ export function AppLayout() {
   const sidebar = useSidebar()
 
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)]">
-      {sidebar.isOpen ? (
+    <div className="min-h-screen overflow-x-clip bg-[var(--color-paper)] text-[var(--color-ink)]">
+      {sidebar.isOpen && sidebar.isMobile ? (
         <button
+          aria-hidden="true"
           aria-label="Close sidebar backdrop"
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          tabIndex={-1}
           type="button"
           onClick={sidebar.close}
         />
       ) : null}
 
       <Sidebar
+        isMobile={sidebar.isMobile}
         isOpen={sidebar.isOpen}
         onClose={sidebar.close}
         onRoomSelect={sidebar.closeOnMobile}
@@ -40,7 +43,7 @@ export function AppLayout() {
           </p>
         </header>
 
-        <main className="mx-auto min-h-screen w-full max-w-7xl min-w-0 px-5 py-8 sm:px-8 lg:px-10">
+        <main className="mx-auto min-h-screen w-full max-w-7xl min-w-0 px-4 py-8 sm:px-8 lg:px-10">
           <Outlet />
         </main>
       </div>
