@@ -31,21 +31,21 @@ A screenshot or demo GIF can be added under `docs/` when a stable visual capture
 
 ## Tech Stack
 
-| Area | Technology |
-| --- | --- |
-| Runtime / package manager | Bun |
-| UI | React 19 |
-| Router | React Router 7 |
-| Build tool | Vite 8 |
-| Language | TypeScript 6 |
-| Styling | Tailwind CSS 4, CSS-first setup |
-| Server state | TanStack React Query 5 |
-| RPC client | Connect-RPC Web |
-| Protobuf runtime | `@bufbuild/protobuf` |
-| Testing | Vitest, jsdom, React Testing Library |
-| Formatting / linting | Prettier, ESLint |
-| Production runtime | nginx on Alpine |
-| Container build | Multi-stage Docker build |
+| Area                      | Technology                           |
+| ------------------------- | ------------------------------------ |
+| Runtime / package manager | Bun                                  |
+| UI                        | React 19                             |
+| Router                    | React Router 7                       |
+| Build tool                | Vite 8                               |
+| Language                  | TypeScript 6                         |
+| Styling                   | Tailwind CSS 4, CSS-first setup      |
+| Server state              | TanStack React Query 5               |
+| RPC client                | Connect-RPC Web                      |
+| Protobuf runtime          | `@bufbuild/protobuf`                 |
+| Testing                   | Vitest, jsdom, React Testing Library |
+| Formatting / linting      | Prettier, ESLint                     |
+| Production runtime        | nginx on Alpine                      |
+| Container build           | Multi-stage Docker build             |
 
 ## Requirements
 
@@ -113,9 +113,9 @@ VITE_API_URL=http://localhost:8080
 
 ### Frontend
 
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `VITE_API_URL` | No | `http://localhost:8080` | Browser-facing API Gateway URL used by Connect-RPC, REST calls, and WebSocket URL generation. |
+| Variable       | Required | Default                 | Description                                                                                   |
+| -------------- | -------- | ----------------------- | --------------------------------------------------------------------------------------------- |
+| `VITE_API_URL` | No       | `http://localhost:8080` | Browser-facing API Gateway URL used by Connect-RPC, REST calls, and WebSocket URL generation. |
 
 For local Docker Compose, keep this as `http://localhost:8080` because the browser runs on the host and cannot resolve Docker service names like `api-gateway`.
 
@@ -123,18 +123,18 @@ For local Docker Compose, keep this as `http://localhost:8080` because the brows
 
 The root `.env.example` controls local compose ports and service credentials.
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PYLON_WEB_PORT` | `3000` | Host port for Pylon Web |
-| `PYLON_WEB_API_URL` | `http://localhost:8080` | Build-time frontend API URL |
-| `API_GATEWAY_PORT` | `8080` | Host port for API Gateway |
-| `POSTGRES_PORT` | `5433` | Host port for PostgreSQL |
-| `REDIS_PORT` | `6380` | Host port for Redis |
-| `KAFKA_PORT` | `9092` | Host port for Kafka |
-| `POSTGRES_USER` | `pylon` | Local PostgreSQL user |
-| `POSTGRES_PASSWORD` | `pylon_dev` | Local PostgreSQL password |
-| `POSTGRES_DB` | `pylon` | Local PostgreSQL database |
-| `JWT_SECRET` | `pylon-dev-secret-change-me` | Local JWT signing secret |
+| Variable            | Default                      | Description                 |
+| ------------------- | ---------------------------- | --------------------------- |
+| `PYLON_WEB_PORT`    | `3000`                       | Host port for Pylon Web     |
+| `PYLON_WEB_API_URL` | `http://localhost:8080`      | Build-time frontend API URL |
+| `API_GATEWAY_PORT`  | `8080`                       | Host port for API Gateway   |
+| `POSTGRES_PORT`     | `5433`                       | Host port for PostgreSQL    |
+| `REDIS_PORT`        | `6380`                       | Host port for Redis         |
+| `KAFKA_PORT`        | `9092`                       | Host port for Kafka         |
+| `POSTGRES_USER`     | `pylon`                      | Local PostgreSQL user       |
+| `POSTGRES_PASSWORD` | `pylon_dev`                  | Local PostgreSQL password   |
+| `POSTGRES_DB`       | `pylon`                      | Local PostgreSQL database   |
+| `JWT_SECRET`        | `pylon-dev-secret-change-me` | Local JWT signing secret    |
 
 ## Development
 
@@ -160,12 +160,12 @@ docker compose up --build
 
 Expected local URLs:
 
-| Service | URL |
-| --- | --- |
-| Pylon Web | `http://localhost:3000` |
-| API Gateway | `http://localhost:8080` |
-| Kafka UI | `http://localhost:8085` |
-| Jaeger UI | `http://localhost:16686` |
+| Service     | URL                      |
+| ----------- | ------------------------ |
+| Pylon Web   | `http://localhost:3000`  |
+| API Gateway | `http://localhost:8080`  |
+| Kafka UI    | `http://localhost:8085`  |
+| Jaeger UI   | `http://localhost:16686` |
 
 ## Available Scripts
 
@@ -483,7 +483,7 @@ docker build \
 Run the container:
 
 ```fish
-docker run --rm -p 3000:80 pylon-web
+docker run --rm -p 3000:8080 pylon-web
 ```
 
 Open:

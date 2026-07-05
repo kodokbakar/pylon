@@ -1,3 +1,4 @@
+import { sanitizeErrorMessage } from '../utils/backendError'
 import { Component, Fragment, type ErrorInfo, type PropsWithChildren } from 'react'
 
 type ErrorBoundaryProps = PropsWithChildren<{
@@ -56,8 +57,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return <Fragment key={resetKey}>{children}</Fragment>
     }
 
-    const errorMessage =
-      error.message.trim() || 'React stopped rendering this section before it blanked the app.'
+    const errorMessage = sanitizeErrorMessage(
+      error,
+      'This section stopped rendering. Please retry or return home.',
+    )
 
     return (
       <main

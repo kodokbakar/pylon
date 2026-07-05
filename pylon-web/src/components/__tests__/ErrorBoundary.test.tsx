@@ -14,7 +14,7 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('Healthy panel')).toBeInTheDocument()
   })
 
-  it('renders a fallback with the error message when a child crashes', () => {
+  it('renders a generic fallback without leaking the raw error message', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     render(
@@ -24,7 +24,10 @@ describe('ErrorBoundary', () => {
     )
 
     expect(screen.getByRole('alert')).toBeInTheDocument()
-    expect(screen.getByText('WebSocket provider exploded')).toBeInTheDocument()
+    expect(
+      screen.getByText('This section stopped rendering. Please retry or return home.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('WebSocket provider exploded')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /go home/i })).toBeInTheDocument()
   })
 
@@ -47,7 +50,8 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     )
 
-    expect(screen.getByText('Presence provider failed')).toBeInTheDocument()
+    expect(screen.getByText('This section stopped rendering. Please retry or return home.')).toBeInTheDocument()
+    expect(screen.queryByText('Presence provider failed')).not.toBeInTheDocument()
 
     shouldThrow = false
     await user.click(screen.getByRole('button', { name: /try again/i }))

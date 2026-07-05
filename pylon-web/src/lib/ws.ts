@@ -75,14 +75,28 @@ export class PylonWebSocketClient {
   }
 
   send(message: WebSocketMessage) {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+    const socket = this.socket
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
       return false
     }
 
     const outgoingMessage = normalizeOutgoingMessage(message)
-    this.socket.send(JSON.stringify(outgoingMessage))
 
-    return true
+    try {
+      socket.send(JSON.stringify(outgoingMessage))
+      return true
+    } catch (error) {
+      const sendError =
+        error instanceof Error ? error : new Error('WebSocket send failed unexpectedly')
+
+      this.options.onError?.(sendError)
+
+      if (this.socket === socket) {
+        socket.close(4001, 'send failed')
+      }
+
+      return false
+    }
   }
 
   subscribe(type: string, handler: WebSocketMessageHandler) {

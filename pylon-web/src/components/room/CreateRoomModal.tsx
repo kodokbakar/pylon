@@ -4,7 +4,7 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { useNavigate } from 'react-router-dom'
 
 import { useCreateRoom } from '../../hooks/useCreateRoom'
-import { cleanBackendMessage } from '../../utils/backendError'
+import { sanitizeErrorMessage } from '../../utils/backendError'
 
 type CreateRoomModalProps = {
   isOpen: boolean
@@ -314,34 +314,22 @@ function trapFocus(event: KeyboardEvent, dialog: HTMLDivElement | null) {
 }
 
 function mapCreateRoomError(error: unknown) {
-  if (error instanceof Error && !(error instanceof ConnectError)) {
-    return error.message
+  if (!(error instanceof ConnectError)) {
+    return sanitizeErrorMessage(error, 'Failed to create room. Please try again.')
   }
 
-  const connectError = ConnectError.from(error)
-
-  if (connectError.code === Code.InvalidArgument) {
-    return (
-      cleanBackendMessage(connectError.rawMessage || connectError.message) ||
-      'Room input is invalid.'
-    )
+  switch (error.code) {
+    case Code.InvalidArgument:
+      return 'Room input is invalid.'
+    case Code.AlreadyExists:
+      return 'A room with this name already exists.'
+    case Code.Unauthenticated:
+      return 'Your session expired. Please log in again.'
+    case Code.PermissionDenied:
+      return 'You do not have permission to create rooms.'
+    case Code.Unavailable:
+      return 'Room service is unavailable. Please try again.'
+    default:
+      return 'Failed to create room. Please try again.'
   }
-
-  if (connectError.code === Code.AlreadyExists) {
-    return 'A room with this name already exists.'
-  }
-
-  if (connectError.code === Code.Unauthenticated) {
-    return 'Your session expired. Please log in again.'
-  }
-
-  if (connectError.code === Code.PermissionDenied) {
-    return 'You do not have permission to create rooms.'
-  }
-
-  if (connectError.code === Code.Unavailable) {
-    return 'Room service is unavailable. Please try again.'
-  }
-
-  return 'Failed to create room. Please try again.'
 }

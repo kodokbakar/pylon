@@ -6,6 +6,7 @@ import { useWebSocketContext } from '../context/webSocketContext'
 import { useAuth } from './useAuth'
 import { recordField, stringField } from '../utils/object'
 import type { WebSocketMessage } from '../lib/ws'
+import { sanitizeErrorMessage } from '../utils/backendError'
 
 export type ChatMessageStatus = 'sent' | 'sending' | 'error'
 
@@ -210,7 +211,9 @@ export function useChatMessages(roomId: string | undefined) {
     isLoading: historyQuery.isLoading,
     isLoadingOlder,
     hasMore,
-    errorMessage: historyQuery.error instanceof Error ? historyQuery.error.message : null,
+    errorMessage: historyQuery.error
+      ? sanitizeErrorMessage(historyQuery.error, 'Messages could not be loaded. Please try again.')
+      : null,
     sendError,
     connectionState,
     isConnected,
@@ -273,13 +276,25 @@ function webSocketMessageToChatMessage(message: WebSocketMessage): ChatMessage |
 
 function webSocketErrorMessage(message: WebSocketMessage) {
   const code = stringField(message, 'code')
-  const detail = stringField(message, 'message')
 
-  if (!code && !detail) {
-    return ''
+  if (!code) {
+    return 'Realtime message could not be delivered. Please try again.'
   }
 
-  return [code, detail].filter(Boolean).join(': ')
+  switch (code) {
+    case 'unauthorized':
+    case 'unauthenticated':
+      return 'Your session expired. Please log in again.'
+    case 'permission_denied':
+    case 'forbidden':
+      return 'You do not have permission to send messages in this room.'
+    case 'room_not_found':
+      return 'This room could not be found.'
+    case 'not_joined':
+      return 'Join the room before sending messages.'
+    default:
+      return 'Realtime message could not be delivered. Please try again.'
+  }
 }
 
 function mergeMessages(messages: ChatMessage[]) {
